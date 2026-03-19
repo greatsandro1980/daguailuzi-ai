@@ -1,0 +1,14 @@
+node_modules/
+daguailuzi/node_modules/
+daguailuzi/dist/
+server/node_modules/
+.DS_Store
+*.log
+tmp/
+
+# 训练模型文件（不提交，太大）
+train/*.pt
+train/__pycache__/
+train/checkpoints/
+train/checkpoints_ppo/
+train/snapshots_ppo_baseline/
