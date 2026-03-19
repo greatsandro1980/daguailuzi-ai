@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大怪路子 AI 训练监控</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        @media (max-width: 500px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+        .stat-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 16px;
+            border-radius: 12px;
+        }
+        .stat-label {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+        .stat-value.win-rate { color: #00d4ff; }
+        .stat-value.speed { color: #7b2cbf; }
+        .stat-value.reward { color: #ffd700; }
+        .stat-value.episodes { color: #00ff88; }
+        .progress-bar {
+            width: 100%;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            border-radius: 12px;
+            transition: width 0.5s ease;
+        }
+        .progress-text {
+            text-align: center;
+            font-size: 0.9em;
+            margin-top: 8px;
+            color: #aaa;
+        }
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+        .status-running {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+        }
+        .status-stopped {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+        }
+        .pulse {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .log-container {
+            background: #000;
+            border-radius: 12px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+        .log-line {
+            color: #888;
+        }
+        .log-line.highlight {
+            color: #00d4ff;
+        }
+        .target-card {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(123, 44, 191, 0.1));
+            border: 1px solid rgba(0, 212, 255, 0.3);
+        }
+        .target-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .target-item:last-child { border-bottom: none; }
+        .target-label { color: #aaa; }
+        .target-value { font-weight: bold; font-size: 1.1em; }
+        .achieved { color: #00ff88; }
+        .not-achieved { color: #ff4444; }
+        .refresh-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(90deg, #00d4ff, #7b2cbf);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .refresh-btn:hover { transform: scale(1.02); }
+        .timestamp {
+            text-align: center;
+            color: #666;
+            font-size: 0.8em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🃏 大怪路子 AI 训练监控</h1>
+        
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>训练状态</h3>
+                <div id="status" class="status-indicator status-stopped">
+                    <span class="pulse"></span>
+                    <span>等待数据...</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card target-card">
+            <h3 style="margin-bottom: 16px;">🎯 训练目标</h3>
+            <div class="target-item">
+                <span class="target-label">目标局数</span>
+                <span class="target-value">200,000 局</span>
+            </div>
+            <div class="target-item">
+                <span class="target-label">目标胜率</span>
+                <span id="target-win-rate" class="target-value not-achieved">≥ 60%</span>
+            </div>
+            <div class="target-item">
+                <span class="target-label">当前进度</span>
+                <span id="progress-text" class="target-value">0%</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin-bottom: 16px;">📊 训练统计</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">已完成局数</div>
+                    <div id="episodes" class="stat-value episodes">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">当前胜率</div>
+                    <div id="win-rate" class="stat-value win-rate">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">平均奖励</div>
+                    <div id="avg-reward" class="stat-value reward">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">训练速度</div>
+                    <div id="speed" class="stat-value speed">0 局/秒</div>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div id="progress-bar" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <div class="progress-text">
+                <span id="remaining">预计剩余: 计算中...</span>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin-bottom: 16px;">⚙️ 训练参数</h3>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">当前学习率</div>
+                    <div id="lr" class="stat-value" style="font-size: 1.2em;">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">探索温度</div>
+                    <div id="temperature" class="stat-value" style="font-size: 1.2em;">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">已训练时间</div>
+                    <div id="elapsed" class="stat-value" style="font-size: 1.2em;">-</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">更新时间</div>
+                    <div id="timestamp" class="stat-value" style="font-size: 1em;">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3 style="margin-bottom: 16px;">📝 训练日志</h3>
+            <div id="log" class="log-container">
+                <div class="log-line">等待训练日志...</div>
+            </div>
+        </div>
+        
+        <button class="refresh-btn" onclick="refresh()">🔄 刷新数据</button>
+        
+        <div class="timestamp" id="last-refresh">上次刷新: -</div>
+    </div>
+
+    <script>
+        const STATUS_FILE = 'training_status.json';
+        const STATUS_FILE_ALT = 'train/training_status.json';
+        const LOG_FILE = 'training_log.txt';
+        const TARGET_EPISODES = 200000;
+        const TARGET_WIN_RATE = 60;
+        
+        let autoRefresh = null;
+        
+        async function fetchJSON(url) {
+            try {
+                const response = await fetch(url + '?t=' + Date.now());
+                if (!response.ok) return null;
+                return await response.json();
+            } catch (e) {
+                return null;
+            }
+        }
+        
+        async function fetchStatus() {
+            let status = await fetchJSON(STATUS_FILE);
+            if (!status) {
+                status = await fetchJSON(STATUS_FILE_ALT);
+            }
+            return status;
+        }
+        
+        async function fetchText(url) {
+            try {
+                const response = await fetch(url + '?t=' + Date.now());
+                if (!response.ok) return '';
+                return await response.text();
+            } catch (e) {
+                return '';
+            }
+        }
+        
+        async function refresh() {
+            // 获取状态
+            const status = await fetchStatus();
+            
+            if (status) {
+                // 更新UI
+                document.getElementById('episodes').textContent = status.episode.toLocaleString();
+                document.getElementById('win-rate').textContent = status.win_rate.toFixed(1) + '%';
+                document.getElementById('avg-reward').textContent = status.avg_reward.toFixed(3);
+                document.getElementById('speed').textContent = status.speed.toFixed(1) + ' 局/秒';
+                document.getElementById('lr').textContent = status.lr.toExponential(2);
+                document.getElementById('temperature').textContent = status.temperature.toFixed(3);
+                document.getElementById('elapsed').textContent = status.elapsed_hours.toFixed(1) + ' 小时';
+                document.getElementById('timestamp').textContent = status.timestamp.split('T')[1].split('.')[0];
+                
+                // 进度
+                const progress = (status.episode / TARGET_EPISODES) * 100;
+                document.getElementById('progress-bar').style.width = progress + '%';
+                document.getElementById('progress-text').textContent = progress.toFixed(1) + '%';
+                
+                // 预计剩余时间
+                const remaining = TARGET_EPISODES - status.episode;
+                const hoursLeft = remaining / status.speed / 3600;
+                if (status.speed > 0) {
+                    document.getElementById('remaining').textContent = 
+                        `预计剩余: ${hoursLeft.toFixed(1)} 小时 (${remaining.toLocaleString()} 局)`;
+                }
+                
+                // 目标达成状态
+                const winRateEl = document.getElementById('target-win-rate');
+                if (status.win_rate >= TARGET_WIN_RATE) {
+                    winRateEl.textContent = '✅ ' + status.win_rate.toFixed(1) + '% (已达成!)';
+                    winRateEl.className = 'target-value achieved';
+                } else {
+                    winRateEl.textContent = status.win_rate.toFixed(1) + '% / 60%';
+                    winRateEl.className = 'target-value not-achieved';
+                }
+                
+                // 状态指示器
+                const statusEl = document.getElementById('status');
+                const now = new Date();
+                const lastUpdate = new Date(status.timestamp);
+                const secondsSinceUpdate = (now - lastUpdate) / 1000;
+                
+                if (secondsSinceUpdate < 60) {
+                    statusEl.className = 'status-indicator status-running';
+                    statusEl.innerHTML = '<span class="pulse"></span><span>训练中</span>';
+                } else {
+                    statusEl.className = 'status-indicator status-stopped';
+                    statusEl.innerHTML = '<span class="pulse"></span><span>暂停/停止</span>';
+                }
+            }
+            
+            // 获取日志
+            const logText = await fetchText(LOG_FILE);
+            if (logText) {
+                const lines = logText.trim().split('\n').slice(-20);
+                const logHtml = lines.map(line => {
+                    if (line.includes('保存检查点')) {
+                        return `<div class="log-line highlight">${line}</div>`;
+                    }
+                    return `<div class="log-line">${line}</div>`;
+                }).join('');
+                document.getElementById('log').innerHTML = logHtml;
+            }
+            
+            // 更新刷新时间
+            document.getElementById('last-refresh').textContent = 
+                '上次刷新: ' + new Date().toLocaleTimeString();
+        }
+        
+        // 自动刷新
+        function startAutoRefresh() {
+            autoRefresh = setInterval(refresh, 5000);
+        }
+        
+        // 初始化
+        refresh();
+        startAutoRefresh();
+    </script>
+</body>
+</html>
