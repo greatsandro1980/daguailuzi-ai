@@ -351,7 +351,18 @@ function checkFiveOfKindWithJokers(normalCards: Card[], bigJokers: number, small
   return { isFiveOfKind: false, mainRank: 0 };
 }
 
+// 大小王自由牌规则：
+// 1. 当大小王可以组成不同牌型时，优先组成最大的牌型
+//    例如：3334+王 → 视作33334（四带一），而不是33344（三带二）
+// 2. 在同一牌型中，王补充到最小点数位置
+//    例如：大王+3344 → 33344（王充当3），而不是33444
+//         小王+3456 → 23456（王充当2），而不是34567
+// 3. 多张王的比较规则：
+//    3大王 > 2大王1小王 = 1大王2小王 = 3小王
+//    2大王 > 大王小王 = 2小王
+
 // 检查是否能用大小王组成四带一
+// 关键规则：王优先补充到最小点数，形成四条
 function checkFourWithOneWithJokers(normalCards: Card[], bigJokers: number, smallJokers: number): { isFourWithOne: boolean, mainRank: number } {
   const rankCounts: Record<number, number> = {};
   for (const c of normalCards) {
@@ -359,11 +370,19 @@ function checkFourWithOneWithJokers(normalCards: Card[], bigJokers: number, smal
   }
 
   const jokerCount = bigJokers + smallJokers;
+  const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b); // 从小到大排序
 
   // 检查是否能组成四带一
-  for (const [rank, count] of Object.entries(rankCounts)) {
+  // 规则：王补充到最小点数优先
+  for (const rank of ranks) {
+    const count = rankCounts[rank];
     if (count + jokerCount >= 4) {
-      return { isFourWithOne: true, mainRank: Number(rank) };
+      // 检查是否还有其他牌作为单牌（或王作为单牌）
+      const otherCards = ranks.filter(r => r !== rank);
+      const totalOther = otherCards.reduce((sum, r) => sum + rankCounts[r], 0);
+      if (totalOther >= 1 || jokerCount >= (4 - count) + 1) {
+        return { isFourWithOne: true, mainRank: rank };
+      }
     }
   }
 
@@ -371,6 +390,7 @@ function checkFourWithOneWithJokers(normalCards: Card[], bigJokers: number, smal
 }
 
 // 检查是否能用大小王组成三带二
+// 规则：王补充到最小点数优先
 function checkThreeWithTwoWithJokers(normalCards: Card[], bigJokers: number, smallJokers: number): { isThreeWithTwo: boolean, mainRank: number } {
   const rankCounts: Record<number, number> = {};
   for (const c of normalCards) {
@@ -378,37 +398,22 @@ function checkThreeWithTwoWithJokers(normalCards: Card[], bigJokers: number, sma
   }
 
   const jokerCount = bigJokers + smallJokers;
-  const ranks = Object.keys(rankCounts).map(Number);
+  const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b);
 
-  // 需要3张相同 + 2张相同，或者3张+大小王+单张
-  if (ranks.length === 2) {
-    const [r1, r2] = ranks;
-    const c1 = rankCounts[r1];
-    const c2 = rankCounts[r2];
-    // 3+2组合
-    if ((c1 === 3 && c2 === 2) || (c1 === 2 && c2 === 3)) {
-      return { isThreeWithTwo: true, mainRank: c1 === 3 ? r1 : r2 };
-    }
-    // 3+1+大小王
-    if (jokerCount >= 1) {
-      if ((c1 === 3 && c2 === 1) || (c1 === 1 && c2 === 3)) {
-        return { isThreeWithTwo: true, mainRank: c1 === 3 ? r1 : r2 };
-      }
-    }
-  }
-
-  // 3+1+1+大小王 或 2+2+1+大小王
-  if (jokerCount >= 1 && ranks.length === 3) {
-    const counts = ranks.map(r => rankCounts[r]);
-    // 找出现次数最多的
-    const maxCount = Math.max(...counts);
-    const mainRank = ranks.find(r => rankCounts[r] === maxCount)!;
-    if (maxCount + jokerCount >= 3) {
-      // 需要另外两张也能组成对子（或通过大小王组成）
-      const otherCounts = counts.filter(c => c !== maxCount);
-      const remainingJokers = jokerCount - (3 - maxCount); // 用掉的joker
-      if (otherCounts[0] + otherCounts[1] + remainingJokers >= 2) {
-        return { isThreeWithTwo: true, mainRank };
+  // 规则：王优先补充到最小点数
+  // 首先检查是否能组成三带二（不使用王作为单牌）
+  for (const threeRank of ranks) {
+    const threeCount = rankCounts[threeRank];
+    if (threeCount + jokerCount >= 3) {
+      // 找另一对（可以是现有的对子，也可以是单牌+王组成的对子）
+      const remainingJokers = jokerCount - Math.max(0, 3 - threeCount);
+      for (const twoRank of ranks) {
+        if (twoRank === threeRank) continue;
+        const twoCount = rankCounts[twoRank];
+        // 现有对子，或单牌+剩余王组成对子
+        if (twoCount >= 2 || (twoCount >= 1 && remainingJokers >= 1)) {
+          return { isThreeWithTwo: true, mainRank: threeRank };
+        }
       }
     }
   }
@@ -416,8 +421,21 @@ function checkThreeWithTwoWithJokers(normalCards: Card[], bigJokers: number, sma
   return { isThreeWithTwo: false, mainRank: 0 };
 }
 
+// 计算王的"质量值"（用于比较多张王的牌型）
+// 规则：3大王 > 2大王1小王 = 1大王2小王 = 3小王
+//      2大王 > 大王小王 = 2小王
+// 返回值越大，牌型越大
+function getJokerQuality(bigJokerCount: number, smallJokerCount: number): number {
+  const total = bigJokerCount + smallJokerCount;
+  // 基础值：总张数 * 100
+  // 大王加权：每个大王 +10
+  // 这样：300+30=330(3大) > 300+20=320(2大1小) = 300+10=310(1大2小) = 300+0=300(3小)
+  return total * 100 + bigJokerCount * 10;
+}
+
 // 获取牌型的主要比较值（考虑大小王作为自由牌和将牌）
 // trumpRank: 将牌点数（如打A时=14，打2时=2）
+// 关键规则：王补充到最小点数位置
 function getCardTypeMainValue(cards: Card[], trumpRank?: number | null): number {
   if (cards.length === 0) return 0;
 
@@ -438,110 +456,106 @@ function getCardTypeMainValue(cards: Card[], trumpRank?: number | null): number 
   const type = recognizeCardType(cards, [], trumpRank);
 
   // 五同：比较组成五同的点数
-  // 大小王的值：大王=17，小王=16
-  // 将牌应该比普通牌大，但比大小王小
+  // 关键规则：王补充到最小点数
   if (type === CardType.FIVE_OF_KIND) {
-    for (const [rank, count] of Object.entries(rankCounts)) {
-      if (count + totalJokers >= 5) {
-        const fiveRank = Number(rank);
-        // 如果这个五同的点数是将牌，加上偏移
-        if (trumpRank !== null && fiveRank === trumpRank) {
-          return 15.5; // 将牌五同，仅次于大小王组成的五同
-        }
-        return fiveRank;
-      }
+    // 如果全是王，按王的组成比较
+    if (normalCards.length === 0) {
+      // 返回王的质量值 + 一个高基础值
+      return 1000 + getJokerQuality(bigJokerCount, smallJokerCount);
     }
-    return RANK_JOKER_BIG; // 如果没有普通牌，那就是王炸
+    
+    // 有普通牌的情况：王补充到该点数，形成五同
+    // 找到最小点数（王补充到最小点数）
+    const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b);
+    const mainRank = ranks[0]; // 王补充到最小点数
+    
+    // 如果这个五同的点数是将牌，加上偏移
+    if (trumpRank !== null && mainRank === trumpRank) {
+      return 15.5; // 将牌五同，仅次于王炸
+    }
+    return mainRank;
   }
 
   // 四带一：比较四条的点
+  // 关键规则：王补充到最小点数形成四条
   if (type === CardType.FOUR_WITH_ONE) {
-    for (const [rank, count] of Object.entries(rankCounts)) {
-      if (count + totalJokers >= 4) {
-        const fourRank = Number(rank);
-        // 如果这个四条的点数是将牌，加上偏移
-        if (trumpRank !== null && fourRank === trumpRank) {
-          return 15.5; // 将牌四带一，仅次于大小王
-        }
-        return fourRank;
-      }
+    // 找到最小点数（王补充到最小点数形成四条）
+    const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b);
+    const mainRank = ranks[0];
+    
+    // 如果这个四条的点数是将牌，加上偏移
+    if (trumpRank !== null && mainRank === trumpRank) {
+      return 15.5;
     }
-    return 0;
+    return mainRank;
   }
 
   // 三带二：比较三张的点
+  // 关键规则：王补充到最小点数形成三条
   if (type === CardType.THREE_WITH_TWO) {
-    // 找出现次数最多的（3张的）
-    let maxCount = 0;
-    let mainRank = 0;
-    for (const [rank, count] of Object.entries(rankCounts)) {
-      const total = count + totalJokers;
-      if (total >= 3 && (total > maxCount || (total === maxCount && Number(rank) > mainRank))) {
-        maxCount = total;
-        mainRank = Number(rank);
-      }
-    }
+    // 找到最小点数（王补充到最小点数形成三条）
+    const ranks = Object.keys(rankCounts).map(Number).sort((a, b) => a - b);
+    const mainRank = ranks[0];
+    
     // 如果这个三张的点数是将牌，加上偏移
     if (trumpRank !== null && mainRank === trumpRank) {
-      return 15.5; // 将牌三带二，仅次于大小王
+      return 15.5;
     }
     return mainRank;
   }
 
   // 对子：特殊处理
+  // 规则：2大王 > 大王小王 = 2小王
   // 大小王的值：大王=17，小王=16
-  // 将牌应该比普通牌大，但比大小王小
-  // 所以将牌的偏移值应该让将牌的值在15.5左右（介于15和16之间）
   if (type === CardType.PAIR) {
-    // 两个大王
-    if (bigJokerCount === 2) {
-      return RANK_JOKER_BIG; // 17
+    // 全是王的情况
+    if (normalCards.length === 0) {
+      // 两个大王：最大
+      if (bigJokerCount === 2) return 200;
+      // 大王小王 或 两个小王：相等
+      if (bigJokerCount === 1 && smallJokerCount === 1) return 160;
+      if (smallJokerCount === 2) return 160;
+      return 0;
     }
-    // 兩個小王
-    if (smallJokerCount === 2) {
-      return Rank.JOKER; // 16
-    }
-    // 大王+普通牌 或 小王+普通牌
+    // 王+普通牌：王补充到该点数
     if (totalJokers === 1 && normalCards.length === 1) {
       const pairRank = normalCards[0].rank as number;
-      // 如果这个对子的点数是将牌，加上偏移（让值在15.5左右）
       if (trumpRank !== null && pairRank === trumpRank) {
-        return 15.5; // 将牌对子，仅次于小王对(16)
+        return 15.5; // 将牌对子
       }
       return pairRank;
     }
     // 普通对子
     if (normalCards.length === 2) {
       const pairRank = normalCards[0].rank as number;
-      // 如果这个对子的点数是将牌，加上偏移（让值在15.5左右）
       if (trumpRank !== null && pairRank === trumpRank) {
-        return 15.5; // 将牌对子，仅次于小王对(16)
+        return 15.5;
       }
       return pairRank;
     }
     return 0;
   }
 
-  // 三条：特殊处理（需要考虑将牌）
+  // 三条：特殊处理（需要考虑将牌和多张王的比较）
+  // 规则：3大王 > 2大王1小王 = 1大王2小王 = 3小王
   if (type === CardType.TRIPLE) {
-    // 找出三条的点数
+    // 全是王的情况
+    if (normalCards.length === 0) {
+      return 300 + getJokerQuality(bigJokerCount, smallJokerCount);
+    }
+    
+    // 有普通牌：王补充到最小点数
     let tripleRank = 0;
-    // 2+2+大小王 = 222
-    if (normalCards.length === 2) {
+    if (normalCards.length >= 2) {
       tripleRank = normalCards[0].rank as number;
-    }
-    // 1+1+大小王 = 333
-    else if (normalCards.length === 1 && totalJokers >= 2) {
+    } else if (normalCards.length === 1 && totalJokers >= 2) {
       tripleRank = normalCards[0].rank as number;
-    }
-    // 3张相同
-    else if (normalCards.length === 3) {
+    } else if (normalCards.length === 3) {
       tripleRank = normalCards[0].rank as number;
     }
     
-    // 如果这个三条的点数是将牌，加上偏移（让值在15.5左右）
     if (trumpRank !== null && tripleRank === trumpRank) {
-      return 15.5; // 将牌三条，仅次于大小王
+      return 15.5;
     }
     return tripleRank;
   }

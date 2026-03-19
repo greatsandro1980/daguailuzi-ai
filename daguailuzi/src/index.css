@@ -1710,3 +1710,123 @@ body {
   margin-top: -4px;
 }
 
+
+/* 规则按钮 */
+.rules-btn {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(232, 197, 71, 0.2);
+  border: 1px solid var(--color-accent);
+  color: var(--color-accent);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+
+.rules-btn:hover {
+  background: rgba(232, 197, 71, 0.3);
+}
+
+/* 规则弹窗 */
+.rules-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.rules-modal {
+  background: linear-gradient(180deg, #1a5c38 0%, #0f3d25 100%);
+  border: 2px solid var(--color-accent);
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.rules-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(232, 197, 71, 0.3);
+  position: sticky;
+  top: 0;
+  background: linear-gradient(180deg, #1a5c38 0%, #0f3d25 100%);
+}
+
+.rules-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--color-accent);
+  letter-spacing: 4px;
+}
+
+.rules-close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.rules-close:hover {
+  color: var(--color-accent);
+}
+
+.rules-content {
+  padding: 20px;
+  color: var(--color-text);
+}
+
+.rules-content h3 {
+  color: var(--color-accent);
+  margin: 16px 0 8px;
+  font-size: 1rem;
+  border-bottom: 1px solid rgba(232, 197, 71, 0.2);
+  padding-bottom: 4px;
+}
+
+.rules-content h3:first-child {
+  margin-top: 0;
+}
+
+.rules-content ul,
+.rules-content ol {
+  margin-left: 20px;
+  line-height: 1.6;
+}
+
+.rules-content li {
+  margin: 4px 0;
+}
+
+.rules-content ul ul,
+.rules-content ol ul {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.rules-content strong {
+  color: var(--color-accent-light);
+}
+
+.rules-content em {
+  color: var(--color-text-muted);
+  font-style: normal;
+}

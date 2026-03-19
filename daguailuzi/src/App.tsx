@@ -68,6 +68,7 @@ function App() {
   const [blueLevel, setBlueLevel] = useState<number>(2); // 蓝方当前打几（2-14）
   const [isFirstRound, setIsFirstRound] = useState<boolean>(true); // 是否是第一盘（第一盘需手动选将牌）
   const [lastTributeInfo, setLastTributeInfo] = useState<{tributorName: string; receiverName: string; card: Card}[]>([]); // 本盘进贡信息（显示用）
+  const [showRules, setShowRules] = useState<boolean>(false); // 规则弹窗显示状态
 
   // 拖拽相关
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
@@ -2441,7 +2442,78 @@ function App() {
               ? '组队中...'
               : `游戏中 - ${roundStarter !== null ? players[roundStarter]?.name + '开牌' : ''} 逆时针 | 将牌: ${TRUMP_OPTIONS.find(t => t.rank === trumpRank)?.name || '-'}`}
         </div>
+        <button className="rules-btn" onClick={() => setShowRules(true)} title="游戏规则">
+          📖 规则
+        </button>
       </header>
+
+      {/* 规则弹窗 */}
+      {showRules && (
+        <div className="rules-overlay" onClick={() => setShowRules(false)}>
+          <div className="rules-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="rules-header">
+              <h2>大怪路子规则</h2>
+              <button className="rules-close" onClick={() => setShowRules(false)}>✕</button>
+            </div>
+            <div className="rules-content">
+              <h3>🎴 基本规则</h3>
+              <ul>
+                <li>6人游戏，分为红蓝两队对战</li>
+                <li>使用3副牌（162张），每人27张</li>
+                <li>逆时针出牌，头游方得分</li>
+              </ul>
+              
+              <h3>🃏 将牌规则</h3>
+              <ul>
+                <li>每局有一个将牌（如打A、打2等）</li>
+                <li>将牌比所有普通牌都大，但比大小王小</li>
+              </ul>
+              
+              <h3>👑 大小王自由牌规则（重要）</h3>
+              <ul>
+                <li><strong>优先最大牌型</strong>：大小王可组成不同牌型时，优先组成最大的牌型
+                  <ul>
+                    <li>例：3334+大王 → 视作33334（四带一），而不是33344（三带二）</li>
+                  </ul>
+                </li>
+                <li><strong>补充最小点数</strong>：在同一牌型中，王补充到最小点数位置
+                  <ul>
+                    <li>例：大王+3344 → 33344（王充当3），而不是33444</li>
+                    <li>例：小王+3456 → 23456（王充当2），而不是34567</li>
+                  </ul>
+                </li>
+                <li><strong>多张王比较</strong>：
+                  <ul>
+                    <li>3个大王 &gt; 2大王1小王 = 1大王2小王 = 3小王</li>
+                    <li>2个大王 &gt; 大王小王 = 2个小王</li>
+                  </ul>
+                </li>
+              </ul>
+              
+              <h3>📊 牌型大小（从大到小）</h3>
+              <ol>
+                <li><strong>五同</strong>：5张相同点数的牌（可用王补充）</li>
+                <li><strong>同花顺</strong>：同一花色的顺子</li>
+                <li><strong>四带一</strong>：4张相同+1张单牌</li>
+                <li><strong>三带二</strong>：3张相同+1对</li>
+                <li><strong>同花</strong>：5张同一花色的牌</li>
+                <li><strong>顺子</strong>：5张连续的牌（不含2和王）</li>
+                <li><strong>三条</strong>：3张相同的牌</li>
+                <li><strong>对子</strong>：2张相同的牌</li>
+                <li><strong>单张</strong>：1张牌</li>
+              </ol>
+              
+              <h3>🏆 进贡规则</h3>
+              <ul>
+                <li>末游方需向头游方进贡最大的牌</li>
+                <li>进贡小王：受贡方选2张候选，进贡方挑1张</li>
+                <li>进贡大王：受贡方选3张候选，进贡方挑1张</li>
+                <li>有3个王可抗贡</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 右上角游戏状态 */}
       {gamePhase === GamePhase.PLAYING && trumpRank && (
