@@ -124,12 +124,15 @@ export default function OnlineGame() {
   
   // 本地理牌顺序 - 使用服务器排序作为初始值，但支持本地拖拽调整
   const [localSortedCards, setLocalSortedCards] = useState<Card[]>([]);
-  const prevHandIdsRef = useRef<string[]>([]);
-  const prevTrumpRankRef = useRef<number | null | undefined>(undefined);
-  const prevHandCountRef = useRef<number>(0); // 记录上一轮手牌数量
-  const [hasUserReordered, setHasUserReordered] = useState(false); // 用户是否手动调整过顺序
+  const prevHandIdSetRef = useRef<Set<string>>(new Set());
+  const localSortedCardsRef = useRef<Card[]>([]);
   
-  // 排序函数
+  // 保持 ref 同步
+  useEffect(() => {
+    localSortedCardsRef.current = localSortedCards;
+  }, [localSortedCards]);
+  
+  // 排序函数（从大到小）
   const sortCardsByValue = useCallback((cards: Card[], trumpRank: number | null | undefined) => {
     return [...cards].sort((a, b) => {
       const getVal = (c: Card) => {
@@ -138,51 +141,53 @@ export default function OnlineGame() {
         if (trumpRank != null && c.rank === trumpRank) return 98;
         return c.rank || 0;
       };
-      return getVal(b) - getVal(a);
+      return getVal(b) - getVal(a); // 从大到小
     });
   }, []);
   
   // 当服务器手牌变化时，更新本地排序
   useEffect(() => {
-    const serverCards = mySortedCards.length > 0 ? mySortedCards : myHand;
-    const serverCardIds = serverCards.map(c => c.id).join(',');
-    const prevCardIds = prevHandIdsRef.current.join(',');
-    const trumpChanged = prevTrumpRankRef.current !== g?.trumpRank;
-    const handCountChanged = prevHandCountRef.current !== serverCards.length;
+    // 使用原始手牌
+    const serverCards = myHand;
     
-    // 判断是否是新一轮：
-    // 1. 手牌从空开始
-    // 2. 手牌ID完全不重叠（新一局发牌）
-    // 3. 手牌数量相同但内容完全不同（第二盘发牌）
-    const prevIds = prevHandIdsRef.current;
-    const newIds = serverCards.map(c => c.id);
-    const hasOverlap = prevIds.some(id => newIds.includes(id));
-    const isNewRound = prevHandIdsRef.current.length === 0 || !hasOverlap || handCountChanged;
-    
-    // 手牌ID变化 或 将牌变化（且用户还没手动调整过）时更新
-    if (serverCardIds !== prevCardIds || (trumpChanged && !hasUserReordered)) {
-      if (isNewRound || trumpChanged) {
-        // 首次加载 或 将牌变化 或 新一轮，按正确顺序排序
-        setLocalSortedCards(sortCardsByValue(serverCards, g?.trumpRank));
-        setHasUserReordered(false); // 重置用户调整标志
-      } else {
-        // 手牌有变化，保留已有牌的顺序，添加新牌到末尾
-        // 保留还存在的牌
-        const remaining = localSortedCards.filter(c => newIds.includes(c.id));
-        
-        // 找出新加入的牌
-        const addedCards = serverCards.filter(c => !prevIds.includes(c.id));
-        
-        // 合并
-        if (addedCards.length > 0 || remaining.length !== localSortedCards.length) {
-          setLocalSortedCards([...remaining, ...addedCards]);
-        }
-      }
-      prevHandIdsRef.current = serverCards.map(c => c.id);
-      prevHandCountRef.current = serverCards.length;
+    // 手牌为空时，清空本地状态
+    if (serverCards.length === 0) {
+      setLocalSortedCards([]);
+      prevHandIdSetRef.current = new Set();
+      return;
     }
-    prevTrumpRankRef.current = g?.trumpRank;
-  }, [myHand, mySortedCards, localSortedCards, g?.trumpRank, hasUserReordered, sortCardsByValue]);
+    
+    const newIdSet = new Set(serverCards.map(c => c.id));
+    const prevIdSet = prevHandIdSetRef.current;
+    
+    // 判断是否是新发牌（手牌ID完全不重叠，或从空开始）
+    const hasOverlap = [...newIdSet].some(id => prevIdSet.has(id));
+    const isNewDeal = prevIdSet.size === 0 || !hasOverlap;
+    
+    if (isNewDeal) {
+      // 新发牌：使用服务器排好的顺序（从大到小）
+      const sorted = mySortedCards.length > 0 ? mySortedCards : sortCardsByValue(serverCards, g?.trumpRank);
+      setLocalSortedCards([...sorted]);
+    } else {
+      // 出牌中或进贡还贡：保留用户调整的顺序
+      const currentLocal = localSortedCardsRef.current;
+      const remaining = currentLocal.filter(c => newIdSet.has(c.id));
+      
+      // 检查是否有新加入的牌（如还贡收到的牌）
+      const addedIds = [...newIdSet].filter(id => !prevIdSet.has(id));
+      if (addedIds.length > 0) {
+        // 新牌按服务器排序位置插入
+        const addedCards = serverCards.filter(c => addedIds.includes(c.id));
+        // 将新牌追加到末尾（用户可以自己拖拽调整）
+        setLocalSortedCards([...remaining, ...addedCards]);
+      } else if (remaining.length !== currentLocal.length) {
+        // 只是出了牌，更新
+        setLocalSortedCards(remaining);
+      }
+    }
+    
+    prevHandIdSetRef.current = newIdSet;
+  }, [myHand, mySortedCards, g?.trumpRank, sortCardsByValue]);
 
   // 当游戏阶段变化时清除选中的牌，避免阶段切换后残留选中状态
   const prevPhaseRef = useRef(phase);
@@ -298,7 +303,6 @@ export default function OnlineGame() {
       // 插入到目标位置
       newSorted.splice(finalInsertIndex, 0, ...movingCards);
       setLocalSortedCards(newSorted);
-      setHasUserReordered(true); // 标记用户已手动调整顺序
     }
     setDraggingIndex(null);
     setDraggingIndices([]);
@@ -383,7 +387,11 @@ export default function OnlineGame() {
     if (!player) return null;
 
     const isActive = g.currentPlayer === seatIndex && phase === 'playing';
-    const showCards = g.playerShowCards[seatIndex] || [];
+    let showCards = g.playerShowCards[seatIndex] || [];
+    // 如果玩家已出完牌，显示他们最后的出牌
+    if (player.isOut && showCards.length === 0 && g.finishedPlayerLastCards?.[seatIndex]) {
+      showCards = g.finishedPlayerLastCards[seatIndex];
+    }
     const rankIdx = g.finishOrder.indexOf(seatIndex);
     const isMe = seatIndex === mySeatIndex;
     
@@ -391,16 +399,44 @@ export default function OnlineGame() {
     const visualPos = getVisualPosition(seatIndex);
 
     if (player.isOut && rankIdx >= 0) {
+      // 获取最后出的牌
+      const lastCards = g.finishedPlayerLastCards?.[seatIndex] || [];
+      
+      const isHorizontal = [1, 2, 4, 5].includes(visualPos);
+      const isRight = [1, 2].includes(visualPos);
+
+      const infoBlock = (
+        <div className="player-info-wrapper">
+          <div className={`player-avatar team${player.team}`}>{AVATARS[seatIndex % 6]}</div>
+          <div className={`player-info ${player.disconnected ? 'disconnected' : ''} team${player.team}`}>
+            <div className="name">{player.name}{isMe && ' (我)'}{player.disconnected && <span style={{color:'#e74c3c',fontSize:'0.6rem',marginLeft:'4px'}}>断线</span>}</div>
+            <div className="rank-badge">{RANK_NAMES[rankIdx]}</div>
+            <div className="team-badge">队{player.team}</div>
+          </div>
+        </div>
+      );
+
+      const playedBlock = (
+        <div className="player-played">
+          {lastCards.length > 0
+            ? <CardStack cards={lastCards} trumpRank={g.trumpRank} />
+            : <span style={{ color: '#888', fontSize: '0.6rem' }}>已出完</span>
+          }
+        </div>
+      );
+
+      if (isHorizontal) {
+        return (
+          <div key={seatIndex} className={`player-seat player-seat-${visualPos} player-finished`}>
+            {isRight ? <>{infoBlock}{playedBlock}</> : <>{playedBlock}{infoBlock}</>}
+          </div>
+        );
+      }
+
       return (
         <div key={seatIndex} className={`player-seat player-seat-${visualPos} player-finished`}>
-          <div className="player-info-wrapper">
-            <div className={`player-avatar team${player.team}`}>{AVATARS[seatIndex % 6]}</div>
-            <div className={`player-info ${player.disconnected ? 'disconnected' : ''} team${player.team}`}>
-              <div className="name">{player.name}{isMe && ' (我)'}{player.disconnected && <span style={{color:'#e74c3c',fontSize:'0.6rem',marginLeft:'4px'}}>断线</span>}</div>
-              <div className="rank-badge">{RANK_NAMES[rankIdx]}</div>
-              <div className="team-badge">队{player.team}</div>
-            </div>
-          </div>
+          {infoBlock}
+          {playedBlock}
         </div>
       );
     }

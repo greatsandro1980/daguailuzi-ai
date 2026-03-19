@@ -52,6 +52,7 @@ export interface GamePublic {
   currentPlayer: number; // seatIndex
   playedCards: { seatIndex: number; cards: Card[] }[];
   playerShowCards: Record<number, Card[]>;
+  finishedPlayerLastCards: Record<number, Card[]>; // 已出完玩家的最后出牌
   currentRoundCardCount: number | null;
   roundStarter: number | null;
   roundWinner: number | null;

@@ -17,7 +17,7 @@ import {
   getCardDisplay, CardType
 } from './gameLogic.js';
 
-const PORT = process.env.PORT || 3002;
+const PORT = process.env.DEPLOY_RUN_PORT || process.env.PORT || 5000;
 
 // ─── 游戏常量 ─────────────────────────────────────────
 const SEAT_COUNT = 6;
@@ -70,6 +70,7 @@ function createGame() {
     selectedCards: [], // 本轮已出牌（服务器记录，用于广播）
     playedCards: [],   // [{seatIndex, cards}] 桌面牌
     playerShowCards: {},
+    finishedPlayerLastCards: {}, // 已出完玩家的最后出牌，保存到下一轮开始
     currentRoundCardCount: null,
     roundStarter: null,
     roundWinner: null,
@@ -256,6 +257,7 @@ function buildRoomSnapshot() {
       currentPlayer: g.currentPlayer,
       playedCards: g.playedCards,
       playerShowCards: g.playerShowCards,
+      finishedPlayerLastCards: g.finishedPlayerLastCards,
       currentRoundCardCount: g.currentRoundCardCount,
       roundStarter: g.roundStarter,
       roundWinner: g.roundWinner,
@@ -602,6 +604,7 @@ function buildGameSnapshotForPlayer(seatIndex) {
     currentPlayer: g.currentPlayer,
     playedCards: g.playedCards,
     playerShowCards: g.playerShowCards,
+    finishedPlayerLastCards: g.finishedPlayerLastCards,
     currentRoundCardCount: g.currentRoundCardCount,
     firstPlay: g.firstPlay,
     jokers: g.jokers,
@@ -965,6 +968,8 @@ function tryPlayCards(g, seatIndex, cards) {
   if (player.hand.length === 0) {
     player.isOut = true;
     g.finishOrder.push(seatIndex);
+    // 保存最后出的牌，用于显示
+    g.finishedPlayerLastCards[seatIndex] = cards;
     addMessage(`${player.name} 出完牌！${['头游', '二游', '三游', '四游', '五游', '末游'][g.finishOrder.length - 1]}`, 'success');
   }
 
@@ -1003,6 +1008,8 @@ function tryPlayCards(g, seatIndex, cards) {
     }
     
     setTimeout(() => handleGameEnd(g), 500);
+    // 游戏结束时清除最后出牌显示，避免一直显示
+    g.finishedPlayerLastCards = {};
     broadcastRoomState();
     broadcastAllHands();
     return { ok: true };
@@ -1018,6 +1025,8 @@ function tryPlayCards(g, seatIndex, cards) {
   }
   if (g.finishOrder.length >= 6) {
     setTimeout(() => handleGameEnd(g), 500);
+    // 游戏结束时清除最后出牌显示
+    g.finishedPlayerLastCards = {};
     broadcastRoomState();
     broadcastAllHands();
     return { ok: true };
@@ -1113,6 +1122,8 @@ function endRoundWithStarter(g, starterSeatIndex) {
   // 清除本轮出牌记录和桌面牌显示
   g.playedCards = [];
   g.playerShowCards = {};
+  // 清除已出完玩家的最后出牌显示（新一轮开始）
+  g.finishedPlayerLastCards = {};
   g.firstPlay = true;
   g.currentRoundCardCount = null;
   // 指定的玩家首发
@@ -1134,6 +1145,8 @@ function endRound(g) {
   // 清除本轮出牌记录和桌面牌显示
   g.playedCards = [];
   g.playerShowCards = {};
+  // 清除已出完玩家的最后出牌显示（新一轮开始）
+  g.finishedPlayerLastCards = {};
   g.firstPlay = true;
   g.currentRoundCardCount = null;
   // roundStarter 重新首发
@@ -1196,8 +1209,12 @@ function scheduleAIPlayIfNeeded(g) {
 }
 
 async function doAIPlay(g, seatIndex) {
+  console.log(`[AI出牌] 开始处理 seatIndex=${seatIndex}`);
   const player = g.players[seatIndex];
-  if (!player || player.isOut) return;
+  if (!player || player.isOut) {
+    console.log(`[AI出牌] 玩家不存在或已出局`);
+    return;
+  }
 
   const lastValidPlay = getLastValidPlay(g);
 
@@ -1205,6 +1222,7 @@ async function doAIPlay(g, seatIndex) {
   let cards = null;
   if (AI_INFERENCE_URL) {
     try {
+      console.log(`[AI出牌] 调用推理服务...`);
       const body = JSON.stringify({
         seatIndex,
         hand:          player.hand,
@@ -1220,24 +1238,30 @@ async function doAIPlay(g, seatIndex) {
         body,
         signal: AbortSignal.timeout(2000),  // 2秒超时
       });
+      console.log(`[AI出牌] 推理服务响应: ${res.status}`);
       if (res.ok) {
         const json = await res.json();
+        console.log(`[AI出牌] 推理结果: ${JSON.stringify(json)}`);
         if (!json.pass && Array.isArray(json.action) && json.action.length > 0) {
           // 把推理服务返回的牌 id 匹配回 player.hand（保证引用正确）
           const actionIds = new Set(json.action.map(c => c.id));
           cards = player.hand.filter(c => actionIds.has(c.id));
           if (cards.length !== json.action.length) cards = null; // id不匹配，降级
+          console.log(`[AI出牌] 匹配到的牌: ${cards?.length || 0}张`);
         } else {
           cards = [];  // pass
+          console.log(`[AI出牌] AI选择pass`);
         }
       }
     } catch (e) {
       // 推理服务不可用，静默降级
+      console.log(`[AI出牌] 推理服务错误: ${e.message}`);
     }
   }
 
   // ── 降级：使用规则AI ──
   if (cards === null) {
+    console.log(`[AI出牌] 使用规则AI降级`);
     cards = aiSelectCards(
       player.hand,
       g.jokers,
@@ -1246,16 +1270,40 @@ async function doAIPlay(g, seatIndex) {
       g.currentRoundCardCount,
       g.trumpRank
     );
+    console.log(`[AI出牌] 规则AI选择: ${cards?.length || 0}张牌`);
   }
 
   if (!cards || cards.length === 0) {
     if (!g.firstPlay) {
+      console.log(`[AI出牌] AI执行pass`);
       doPass(g, seatIndex);
+    } else {
+      console.log(`[AI出牌] 首发无牌可出，异常！`);
     }
     return;
   }
 
-  tryPlayCards(g, seatIndex, cards);
+  console.log(`[AI出牌] AI出牌成功: ${cards.length}张`);
+  const result = tryPlayCards(g, seatIndex, cards);
+  if (!result || !result.ok) {
+    console.log(`[AI出牌] 出牌失败: ${result?.reason || '未知原因'}，尝试规则AI`);
+    // 牌型无效，使用规则AI重新选牌
+    const fallbackCards = aiSelectCards(
+      player.hand,
+      g.jokers,
+      lastValidPlay ? lastValidPlay.cards : null,
+      g.firstPlay,
+      g.currentRoundCardCount,
+      g.trumpRank
+    );
+    if (fallbackCards && fallbackCards.length > 0) {
+      console.log(`[AI出牌] 规则AI出牌: ${fallbackCards.length}张`);
+      tryPlayCards(g, seatIndex, fallbackCards);
+    } else if (!g.firstPlay) {
+      console.log(`[AI出牌] 规则AI选择pass`);
+      doPass(g, seatIndex);
+    }
+  }
 }
 
 // 推理服务地址（启动时可通过环境变量 AI_INFERENCE_URL 指定）
@@ -1306,6 +1354,14 @@ function handleGameEnd(g) {
 
   g.lastWinnerId = order[0];
   g.roundWinner = order[0];
+
+  // 游戏结束时清空所有玩家的手牌
+  for (const p of g.players) {
+    p.hand = [];
+    p.sortedCards = [];
+    p.cardCount = 0;
+  }
+  broadcastAllHands(); // 广播清空后的手牌状态
 
   const tributeData = checkAndInitTribute(order, g.players);
   if (tributeData) {

@@ -1,0 +1,10 @@
+[project]
+requires = ["nodejs-24", "python-3.11"]
+
+[dev]
+build = ["bash", "-c", "cd /workspace/projects && pnpm install && cd daguailuzi && pnpm install && pnpm run build && cd ../server && pnpm install"]
+run = ["bash", "-c", "cd /workspace/projects/train && (python3 serve.py --model ../stage2_final.pt --port 5001 &) && cd /workspace/projects && node server/index.js"]
+
+[deploy]
+build = ["bash", "-c", "cd /workspace/projects && pnpm install && cd daguailuzi && pnpm install && pnpm run build && cd ../server && pnpm install"]
+run = ["bash", "-c", "cd /workspace/projects/train && (python3 serve.py --model ../stage2_final.pt --port 5001 &) && cd /workspace/projects && node server/index.js"]

@@ -155,7 +155,7 @@ body {
   flex-direction: column;
   gap: 8px;
   align-items: center;
-  z-index: 10;
+  z-index: 100; /* 提高按钮的 z-index，确保不被牌遮挡 */
 }
 
 .table-action-buttons .countdown-display {
@@ -211,6 +211,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  z-index: 10; /* 确保头像和信息在上层 */
 }
 
 /* 左右两边玩家的出牌区 */
@@ -222,6 +223,27 @@ body {
   min-height: 60px;
   display: flex;
   align-items: center;
+}
+
+/* 底部玩家（位置 0）的出牌区 - 避免遮挡按钮 */
+.player-seat-0 .player-played {
+  min-height: 70px;
+  max-width: 200px;
+  justify-content: center;
+  margin-bottom: 5px;
+}
+
+/* 底部玩家出牌区的牌缩小显示 */
+.player-seat-0 .player-played .card {
+  width: 50px;
+  height: 72px;
+  font-size: 0.8rem;
+}
+
+/* 顶部玩家（位置 3）的出牌区 */
+.player-seat-3 .player-played {
+  min-height: 70px;
+  max-width: 200px;
 }
 
 /* 玩家信息 */
@@ -307,6 +329,7 @@ body {
   flex-wrap: wrap;
   justify-content: center;
   max-width: 120px;
+  z-index: 5; /* 确保出牌区在上层，但不会遮挡按钮 */
 }
 
 .player-played .card {
