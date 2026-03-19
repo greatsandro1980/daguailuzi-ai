@@ -5,11 +5,12 @@
 
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { join, extname, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const TRAINING_STATUS_PATH = join(__dirname, '..', 'training_status.json');
 import {
   createDeck, shuffleDeck, dealCards, sortCards,
   recognizeCardType, compareCards, aiSelectCards,
@@ -118,6 +119,28 @@ const httpServer = createServer((req, res) => {
   const url = new URL(req.url || '/', `http://localhost`);
   // 解码 URL 中的中文文件名
   const decodedPathname = decodeURIComponent(url.pathname);
+  
+  // 训练状态API
+  if (decodedPathname === '/api/training-status') {
+    try {
+      if (existsSync(TRAINING_STATUS_PATH)) {
+        const content = readFileSync(TRAINING_STATUS_PATH, 'utf-8');
+        res.writeHead(200, { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        });
+        res.end(content);
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '训练状态文件不存在' }));
+      }
+    } catch (e) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+    return;
+  }
+  
   let filePath = join(STATIC_DIR, decodedPathname);
 
   // 如果不是静态文件目录，回退到 index.html（SPA 路由）

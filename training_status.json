@@ -1,10 +1,10 @@
 {
-  "episode": 56081,
-  "win_rate": 2.0,
-  "avg_reward": -0.285,
+  "episode": 1933,
+  "win_rate": 0.0,
+  "avg_reward": -0.229,
   "speed": 0.0,
-  "elapsed_hours": 0.05,
-  "lr": 0.0,
-  "temperature": 0.2,
-  "timestamp": "2026-03-20T07:02:42.217368"
+  "elapsed_hours": 0.06,
+  "lr": 0.00019,
+  "temperature": 0.815,
+  "timestamp": "2026-03-20T07:27:46.138079"
 }

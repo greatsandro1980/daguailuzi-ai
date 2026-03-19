@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI训练监控 - 大怪路子</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      color: #fff;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2rem;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .progress-container {
+      margin-bottom: 20px;
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .progress-bar {
+      height: 24px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      border-radius: 12px;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: #000;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .stat-item {
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+    .win-rate { color: #00ff88; }
+    .reward { color: #ffaa00; }
+    .speed { color: #00d4ff; }
+    .time { color: #ff6b6b; }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    .status-dot.running { background: #00ff88; }
+    .status-dot.stopped { background: #ff6b6b; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .refresh-info {
+      text-align: center;
+      font-size: 0.8rem;
+      opacity: 0.6;
+      margin-top: 20px;
+    }
+    
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #00d4ff;
+      text-decoration: none;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AI 训练监控</h1>
+    
+    <div class="card">
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">检测中...</span>
+      </div>
+      
+      <div class="progress-container">
+        <div class="progress-label">
+          <span>训练进度</span>
+          <span id="progressText">0 / 200,000 局</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
+        </div>
+      </div>
+      
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value win-rate" id="winRate">--</div>
+          <div class="stat-label">胜率 (%)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value reward" id="avgReward">--</div>
+          <div class="stat-label">平均奖励</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value speed" id="speed">--</div>
+          <div class="stat-label">速度 (局/秒)</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value time" id="elapsedTime">--</div>
+          <div class="stat-label">已用时间</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3 style="margin-bottom: 16px;">训练参数</h3>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="lr">--</div>
+          <div class="stat-label">学习率</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="temperature">--</div>
+          <div class="stat-label">温度</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="timestamp">--</div>
+          <div class="stat-label">最后更新</div>
+        </div>
+      </div>
+    </div>
+    
+    <p class="refresh-info">自动每 5 秒刷新</p>
+    <a href="/" class="back-link">← 返回游戏</a>
+  </div>
+
+  <script>
+    async function fetchStatus() {
+      try {
+        const response = await fetch('/api/training-status');
+        const data = await response.json();
+        updateUI(data);
+      } catch (e) {
+        document.getElementById('statusDot').className = 'status-dot stopped';
+        document.getElementById('statusText').textContent = '无法连接到训练服务';
+      }
+    }
+    
+    function updateUI(data) {
+      const episode = data.episode || 0;
+      const target = 200000;
+      const progress = (episode / target * 100).toFixed(1);
+      
+      // 进度
+      document.getElementById('progressText').textContent = 
+        `${episode.toLocaleString()} / ${target.toLocaleString()} 局`;
+      document.getElementById('progressFill').style.width = `${progress}%`;
+      document.getElementById('progressFill').textContent = `${progress}%`;
+      
+      // 统计
+      document.getElementById('winRate').textContent = data.win_rate || 0;
+      document.getElementById('avgReward').textContent = 
+        data.avg_reward ? data.avg_reward.toFixed(3) : '--';
+      document.getElementById('speed').textContent = 
+        data.speed ? data.speed.toFixed(1) : '--';
+      document.getElementById('elapsedTime').textContent = 
+        data.elapsed_hours ? `${data.elapsed_hours.toFixed(1)}h` : '--';
+      
+      // 参数
+      document.getElementById('lr').textContent = data.lr || '--';
+      document.getElementById('temperature').textContent = data.temperature || '--';
+      document.getElementById('timestamp').textContent = 
+        data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : '--';
+      
+      // 状态指示器
+      const isRunning = data.speed > 0;
+      document.getElementById('statusDot').className = 
+        `status-dot ${isRunning ? 'running' : 'stopped'}`;
+      document.getElementById('statusText').textContent = 
+        isRunning ? '训练进行中...' : '训练已暂停';
+    }
+    
+    // 初始加载
+    fetchStatus();
+    // 每5秒刷新
+    setInterval(fetchStatus, 5000);
+  </script>
+</body>
+</html>
