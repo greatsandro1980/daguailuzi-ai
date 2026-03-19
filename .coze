@@ -2,9 +2,9 @@
 requires = ["nodejs-24", "python-3.11"]
 
 [dev]
-build = ["bash", "-c", "pnpm install && cd daguailuzi && pnpm install && pnpm run build && cd ../server && pnpm install"]
-run = ["bash", "-c", "cd train && (python3 serve.py --model ../stage2_final.pt --port 5001 &) && cd .. && node server/index.js"]
+build = ["bash", "build.sh"]
+run = ["bash", "run.sh"]
 
 [deploy]
-build = ["bash", "-c", "pnpm install && cd daguailuzi && pnpm install && pnpm run build && cd ../server && pnpm install"]
-run = ["bash", "-c", "cd train && (python3 serve.py --model ../stage2_final.pt --port 5001 &) && cd .. && node server/index.js"]
+build = ["bash", "build.sh"]
+run = ["bash", "run.sh"]
