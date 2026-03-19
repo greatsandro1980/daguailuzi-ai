@@ -17,11 +17,12 @@ from game_env import (
 
 # ─── 增强版特征维度 ─────────────────────────────────
 # 基础: 54*4 = 216
-# 牌权: 6*4 = 24 (每个玩家最近4轮是否控制牌权)
+# 牌权: 6*6 = 36 (6轮 * 6玩家)
 # 对手牌型统计: 6*9 = 54 (每个玩家每种牌型出过几次)
 # 队友状态: 6 (队友手牌数、是否被压制)
 # 剩余牌分布: 54 (还有哪些牌在外面)
-FEATURE_DIM_ENHANCED = 216 + 24 + 54 + 6 + 54  # = 354
+# 总计: 216 + 36 + 54 + 6 + 54 = 366
+FEATURE_DIM_ENHANCED = 366
 
 
 # ─── 增强版编码 ─────────────────────────────────────
@@ -41,12 +42,12 @@ def encode_state_enhanced(obs, game_history=None):
     from game_env import encode_state
     base_feat = encode_state(obs)
     
-    # 2. 牌权信息 (24)
-    control_feat = np.zeros(24, dtype=np.float32)
+    # 2. 牌权信息 (36): 6轮 * 6玩家
+    control_feat = np.zeros(36, dtype=np.float32)
     if game_history and 'control_history' in game_history:
         for i, controller in enumerate(game_history['control_history'][:6]):
-            if controller >= 0:
-                control_feat[i * 4 + controller] = 1.0
+            if 0 <= controller < 6:
+                control_feat[i * 6 + controller] = 1.0
     
     # 3. 对手牌型统计 (54)
     opponent_stats = np.zeros(54, dtype=np.float32)
