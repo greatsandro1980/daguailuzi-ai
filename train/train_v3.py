@@ -117,6 +117,16 @@ def train():
     start_time = time.time()
     save_dir = '/workspace/projects'
     
+    # 加载最新检查点
+    checkpoints = [f for f in os.listdir(save_dir) if f.startswith('model_v3_ep') and f.endswith('.pt')]
+    if checkpoints:
+        latest = max(checkpoints, key=lambda x: int(x.split('ep')[1].split('.')[0]))
+        ckpt_path = os.path.join(save_dir, latest)
+        ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
+        net.load_state_dict(ckpt['model'])
+        episode = ckpt.get('episode', 0)
+        print(f"✅ 加载检查点: {latest}, 从第{episode}局继续")
+    
     # 经验缓冲
     states_buf = []
     actions_buf = []
@@ -125,7 +135,7 @@ def train():
     print(f"🚀 开始训练 v3 (模仿学习 + 强化)")
     print(f"   目标: {CFG['max_episodes']}局")
     
-    for ep in range(CFG['max_episodes']):
+    for ep in range(episode, CFG['max_episodes']):
         obs = env.reset()
         ep_states = []
         ep_actions = []
