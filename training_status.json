@@ -1,10 +1,10 @@
 {
-  "episode": 2084,
-  "win_rate": 0.0,
-  "avg_reward": -0.04,
-  "speed": 0.0,
-  "elapsed_hours": 0.06,
-  "lr": 0.000176,
-  "temperature": 0.791,
-  "timestamp": "2026-03-20T08:23:56.842110"
+  "episode": 8100,
+  "win_rate": 38.0,
+  "avg_reward": 0.38,
+  "speed": 15.0,
+  "elapsed_hours": 0.15,
+  "lr": 0.001,
+  "temperature": 1.0,
+  "timestamp": "2026-03-20T09:07:10.616806"
 }
