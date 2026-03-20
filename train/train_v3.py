@@ -186,23 +186,18 @@ def train():
                     last_player = -1
             
             # 头游所在队伍获胜
-            if first_player % 2 == 0:  # 红队(0,2,4)
+            if first_player % 2 == 0:  # 红队(0,2,4)头游
                 win_history.append(1.0)
                 # 得分：头游是红队，且最后一名是蓝队
                 if last_player >= 0 and last_player % 2 == 1:
-                    score_history.append(1.0)  # 得分！
+                    score_history.append(1.0)  # 红队得分！
                 else:
                     score_history.append(0.0)  # 胜但不得分
-            else:  # 蓝队(1,3,5)
+            else:  # 蓝队(1,3,5)头游
                 win_history.append(0.0)
-                # 得分：头游是蓝队，且最后一名是红队
-                if last_player >= 0 and last_player % 2 == 0:
-                    score_history.append(1.0)  # 对手得分
-                else:
-                    score_history.append(0.0)
+                # 红队输了，不计入得分统计
         else:
             win_history.append(0.0)
-            score_history.append(0.0)
         
         # 收集经验
         states_buf.extend(ep_states)
