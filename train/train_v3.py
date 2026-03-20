@@ -113,6 +113,7 @@ def train():
     # 状态
     episode = 0
     win_history = deque(maxlen=100)
+    score_history = deque(maxlen=100)  # 得分率：头游+对手垫底
     start_time = time.time()
     save_dir = '/workspace/projects'
     
@@ -167,13 +168,41 @@ def train():
             
             obs, rewards, done, _ = env.step(action)
         
-        # 记录结果
-        if env.done:
-            red_score = sum(rewards[s] for s in [0, 2, 4])
-            blue_score = sum(rewards[s] for s in [1, 3, 5])
-            win_history.append(1.0 if red_score > blue_score else 0.0)
+        # 记录结果 - 大怪路子规则：头游获胜
+        if env.done and len(env.finish_order) > 0:
+            # 头游（第一名）是谁？
+            first_player = env.finish_order[0]
+            
+            # 最后一名：如果只有5人完成，则第6个未完成的玩家是最后一名
+            if len(env.finish_order) >= 6:
+                last_player = env.finish_order[5]
+            else:
+                # 找出未完成的那个人
+                for i in range(6):
+                    if i not in env.finish_order:
+                        last_player = i
+                        break
+                else:
+                    last_player = -1
+            
+            # 头游所在队伍获胜
+            if first_player % 2 == 0:  # 红队(0,2,4)
+                win_history.append(1.0)
+                # 得分：头游是红队，且最后一名是蓝队
+                if last_player >= 0 and last_player % 2 == 1:
+                    score_history.append(1.0)  # 得分！
+                else:
+                    score_history.append(0.0)  # 胜但不得分
+            else:  # 蓝队(1,3,5)
+                win_history.append(0.0)
+                # 得分：头游是蓝队，且最后一名是红队
+                if last_player >= 0 and last_player % 2 == 0:
+                    score_history.append(1.0)  # 对手得分
+                else:
+                    score_history.append(0.0)
         else:
             win_history.append(0.0)
+            score_history.append(0.0)
         
         # 收集经验
         states_buf.extend(ep_states)
@@ -209,10 +238,12 @@ def train():
             elapsed = time.time() - start_time
             speed = (ep + 1) / elapsed if elapsed > 0 else 0
             win_rate = np.mean(win_history) * 100
+            score_rate = np.mean(score_history) * 100  # 得分率
             
             status = {
                 'episode': ep + 1,
                 'win_rate': round(win_rate, 1),
+                'score_rate': round(score_rate, 1),  # 新增得分率
                 'avg_reward': round(win_rate / 100, 3),
                 'speed': round(speed, 1),
                 'elapsed_hours': round(elapsed / 3600, 2),

@@ -23,11 +23,17 @@
     }
     h1 {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 10px;
       font-size: 2rem;
       background: linear-gradient(90deg, #00d4ff, #00ff88);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+      opacity: 0.7;
     }
     .card {
       background: rgba(255,255,255,0.1);
@@ -66,7 +72,7 @@
     }
     .stats-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 16px;
     }
     .stat-item {
@@ -76,15 +82,16 @@
       text-align: center;
     }
     .stat-value {
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: bold;
       margin-bottom: 4px;
     }
     .stat-label {
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       opacity: 0.7;
     }
     .win-rate { color: #00ff88; }
+    .score-rate { color: #ffd700; }
     .reward { color: #ffaa00; }
     .speed { color: #00d4ff; }
     .time { color: #ff6b6b; }
@@ -108,6 +115,11 @@
       50% { opacity: 0.5; }
     }
     
+    .highlight-card {
+      background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(0,255,136,0.2));
+      border: 1px solid rgba(255,215,0,0.3);
+    }
+    
     .refresh-info {
       text-align: center;
       font-size: 0.8rem;
@@ -125,11 +137,24 @@
     .back-link:hover {
       text-decoration: underline;
     }
+    
+    .rules-card {
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .rules-card ul {
+      margin-top: 10px;
+      padding-left: 20px;
+    }
+    .rules-card li {
+      margin-bottom: 6px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>AI 训练监控</h1>
+    <p class="subtitle">大怪路子 · 神经网络训练</p>
     
     <div class="card">
       <div class="status-indicator">
@@ -146,12 +171,30 @@
           <div class="progress-fill" id="progressFill" style="width: 0%">0%</div>
         </div>
       </div>
-      
+    </div>
+    
+    <!-- 核心指标卡片 -->
+    <div class="card highlight-card">
+      <h3 style="margin-bottom: 16px; text-align: center;">🎯 核心指标</h3>
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-value win-rate" id="winRate">--</div>
-          <div class="stat-label">胜率 (%)</div>
+          <div class="stat-label">胜率 %</div>
         </div>
+        <div class="stat-item">
+          <div class="stat-value score-rate" id="scoreRate">--</div>
+          <div class="stat-label">得分率 %</div>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 12px; font-size: 0.8rem; opacity: 0.8;">
+        目标：胜率 ≥ 60%，得分率 ≥ 40%
+      </p>
+    </div>
+    
+    <!-- 训练统计 -->
+    <div class="card">
+      <h3 style="margin-bottom: 16px;">📊 训练统计</h3>
+      <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-value reward" id="avgReward">--</div>
           <div class="stat-label">平均奖励</div>
@@ -167,8 +210,9 @@
       </div>
     </div>
     
+    <!-- 训练参数 -->
     <div class="card">
-      <h3 style="margin-bottom: 16px;">训练参数</h3>
+      <h3 style="margin-bottom: 16px;">⚙️ 训练参数</h3>
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-value" id="lr">--</div>
@@ -183,6 +227,16 @@
           <div class="stat-label">最后更新</div>
         </div>
       </div>
+    </div>
+    
+    <!-- 规则说明 -->
+    <div class="card rules-card">
+      <h3 style="margin-bottom: 10px;">📜 得分规则</h3>
+      <ul>
+        <li><strong>胜利</strong>：本队有人获得头游（第一名）</li>
+        <li><strong>得分</strong>：头游 + 最后一名是对手</li>
+        <li><strong>对手</strong>：StrongRuleBot（小牌优先策略）</li>
+      </ul>
     </div>
     
     <p class="refresh-info">自动每 5 秒刷新</p>
@@ -212,8 +266,11 @@
       document.getElementById('progressFill').style.width = `${progress}%`;
       document.getElementById('progressFill').textContent = `${progress}%`;
       
-      // 统计
+      // 核心指标
       document.getElementById('winRate').textContent = data.win_rate || 0;
+      document.getElementById('scoreRate').textContent = data.score_rate || 0;
+      
+      // 统计
       document.getElementById('avgReward').textContent = 
         data.avg_reward ? data.avg_reward.toFixed(3) : '--';
       document.getElementById('speed').textContent = 
