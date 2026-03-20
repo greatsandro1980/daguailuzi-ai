@@ -114,18 +114,25 @@ def train():
     episode = 0
     win_history = deque(maxlen=100)
     score_history = deque(maxlen=100)  # 得分率：头游+对手垫底
+    total_wins = 0  # 累计胜利局数
+    total_scores = 0  # 累计得分局数
     start_time = time.time()
     save_dir = '/workspace/projects'
     
     # 加载最新检查点
     checkpoints = [f for f in os.listdir(save_dir) if f.startswith('model_v3_ep') and f.endswith('.pt')]
+    start_episode = 0  # 开始累计的局数
     if checkpoints:
         latest = max(checkpoints, key=lambda x: int(x.split('ep')[1].split('.')[0]))
         ckpt_path = os.path.join(save_dir, latest)
         ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
         net.load_state_dict(ckpt['model'])
         episode = ckpt.get('episode', 0)
-        print(f"✅ 加载检查点: {latest}, 从第{episode}局继续")
+        start_episode = episode  # 从检查点开始累计
+        # 累计数据从现在开始重新计算
+        total_wins = 0
+        total_scores = 0
+        print(f"✅ 加载检查点: {latest}, 从第{episode}局继续（累计胜率从此刻开始计算）")
     
     # 经验缓冲
     states_buf = []
@@ -198,9 +205,11 @@ def train():
             # 头游所在队伍获胜
             if first_player % 2 == 0:  # 红队(0,2,4)头游
                 win_history.append(1.0)
+                total_wins += 1  # 累计胜利+1
                 # 得分：头游是红队，且最后一名是蓝队
                 if last_player >= 0 and last_player % 2 == 1:
                     score_history.append(1.0)  # 红队得分！
+                    total_scores += 1  # 累计得分+1
                 else:
                     score_history.append(0.0)  # 胜但不得分
             else:  # 蓝队(1,3,5)头游
@@ -244,11 +253,13 @@ def train():
             speed = (ep + 1) / elapsed if elapsed > 0 else 0
             win_rate = np.mean(win_history) * 100
             score_rate = np.mean(score_history) * 100  # 得分率
+            total_win_rate = (total_wins / (ep + 1 - start_episode)) * 100 if (ep + 1 - start_episode) > 0 else 0  # 累计胜率（从start_episode开始）
             
             status = {
                 'episode': ep + 1,
-                'win_rate': round(win_rate, 1),
-                'score_rate': round(score_rate, 1),  # 新增得分率
+                'win_rate': round(win_rate, 1),  # 即时胜率（最近100局）
+                'total_win_rate': round(total_win_rate, 1),  # 累计胜率
+                'score_rate': round(score_rate, 1),
                 'avg_reward': round(win_rate / 100, 3),
                 'speed': round(speed, 1),
                 'elapsed_hours': round(elapsed / 3600, 2),
@@ -269,6 +280,8 @@ def train():
                 'model': net.state_dict(),
                 'episode': ep + 1,
                 'win_rate': np.mean(win_history),
+                'total_wins': total_wins,
+                'total_scores': total_scores,
             }, save_path)
             print(f"✅ 保存: {save_path}")
     

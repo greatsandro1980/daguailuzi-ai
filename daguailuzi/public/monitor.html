@@ -179,7 +179,11 @@
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-value win-rate" id="winRate">--</div>
-          <div class="stat-label">胜率 %</div>
+          <div class="stat-label">即时胜率 %</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" style="color: #00bfff" id="totalWinRate">--</div>
+          <div class="stat-label">累计胜率 %</div>
         </div>
         <div class="stat-item">
           <div class="stat-value score-rate" id="scoreRate">--</div>
@@ -268,6 +272,7 @@
       
       // 核心指标
       document.getElementById('winRate').textContent = data.win_rate || 0;
+      document.getElementById('totalWinRate').textContent = data.total_win_rate || 0;
       document.getElementById('scoreRate').textContent = data.score_rate || 0;
       
       // 统计

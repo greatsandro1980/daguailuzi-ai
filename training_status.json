@@ -1,11 +1,12 @@
 {
-  "episode": 65200,
-  "win_rate": 63.0,
-  "score_rate": 60.0,
-  "avg_reward": 0.63,
-  "speed": 53.5,
-  "elapsed_hours": 0.34,
+  "episode": 65900,
+  "win_rate": 55.0,
+  "total_win_rate": 56.2,
+  "score_rate": 65.0,
+  "avg_reward": 0.55,
+  "speed": 257.2,
+  "elapsed_hours": 0.07,
   "lr": 0.001,
   "temperature": 1.0,
-  "timestamp": "2026-03-20T11:43:11.121557"
+  "timestamp": "2026-03-20T11:55:58.287409"
 }

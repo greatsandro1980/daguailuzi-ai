@@ -20,7 +20,7 @@ while true; do
         
         # 重启训练
         cd /workspace/projects/train
-        nohup python3 train_v3.py > /app/work/logs/bypass/training_v3.log 2>&1 &
+        python3 train_v3.py > /app/work/logs/bypass/training_v3.log 2>&1 &
         sleep 5
         echo "✅ 训练已重启"
     else
@@ -31,9 +31,10 @@ while true; do
     if [ -f /workspace/projects/training_status.json ]; then
         EP=$(cat /workspace/projects/training_status.json | python3 -c "import sys,json; print(json.load(sys.stdin).get('episode', 0))")
         WR=$(cat /workspace/projects/training_status.json | python3 -c "import sys,json; print(json.load(sys.stdin).get('win_rate', 0))")
+        TWR=$(cat /workspace/projects/training_status.json | python3 -c "import sys,json; print(json.load(sys.stdin).get('total_win_rate', 0))")
         SR=$(cat /workspace/projects/training_status.json | python3 -c "import sys,json; print(json.load(sys.stdin).get('score_rate', 0))")
         PROGRESS=$(python3 -c "print(round($EP / 200000 * 100, 1))")
-        echo "进度: $EP / 200,000 局 ($PROGRESS%) | 胜率: ${WR}% | 得分率: ${SR}%"
+        echo "进度: $EP / 200,000 ($PROGRESS%) | 即时胜率: ${WR}% | 累计胜率: ${TWR}% | 得分率: ${SR}%"
         
         # 检查是否完成
         if [ "$EP" -ge 200000 ]; then
