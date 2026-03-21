@@ -3,354 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache">
     <title>AI训练监控 - 自我博弈</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             min-height: 100vh;
             color: #fff;
             padding: 20px;
         }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 28px;
-            color: #4fc3f7;
-        }
-        
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 20px; color: #4fc3f7; }
         .card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .card h2 {
-            font-size: 18px;
-            margin-bottom: 16px;
-            color: #81d4fa;
-        }
-        
-        .progress-bar {
-            height: 24px;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255,255,255,0.05);
             border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 10px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
         }
-        
+        .progress-bar {
+            height: 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #4fc3f7 0%, #00bcd4 100%);
-            border-radius: 12px;
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #4fc3f7, #00bcd4);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
             font-weight: bold;
+            transition: width 0.3s;
         }
-        
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 12px;
         }
-        
         .stat-item {
             text-align: center;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
+            padding: 12px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
         }
-        
-        .stat-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #4fc3f7;
-            margin-bottom: 4px;
-        }
-        
-        .stat-label {
-            font-size: 14px;
-            color: #90a4ae;
-        }
-        
-        .team-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 16px;
-        }
-        
+        .stat-value { font-size: 24px; font-weight: bold; color: #4fc3f7; }
+        .stat-label { font-size: 12px; color: #90a4ae; margin-top: 4px; }
+        .team-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
         .team-card {
-            padding: 20px;
-            border-radius: 12px;
+            padding: 16px;
+            border-radius: 8px;
             text-align: center;
         }
-        
-        .team-red {
-            background: rgba(244, 67, 54, 0.2);
-            border: 1px solid rgba(244, 67, 54, 0.3);
-        }
-        
-        .team-blue {
-            background: rgba(33, 150, 243, 0.2);
-            border: 1px solid rgba(33, 150, 243, 0.3);
-        }
-        
-        .team-name {
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-        
-        .team-win-rate {
-            font-size: 42px;
-            font-weight: bold;
-        }
-        
-        .team-red .team-win-rate {
-            color: #f44336;
-        }
-        
-        .team-blue .team-win-rate {
-            color: #2196f3;
-        }
-        
+        .team-red { background: rgba(244,67,54,0.15); border: 1px solid rgba(244,67,54,0.3); }
+        .team-blue { background: rgba(33,150,243,0.15); border: 1px solid rgba(33,150,243,0.3); }
+        .team-name { font-size: 14px; margin-bottom: 8px; }
+        .team-win-rate { font-size: 36px; font-weight: bold; }
+        .team-red .team-win-rate { color: #f44336; }
+        .team-blue .team-win-rate { color: #2196f3; }
         .status-badge {
             display: inline-block;
-            padding: 6px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 16px;
-        }
-        
-        .status-running {
-            background: rgba(76, 175, 80, 0.2);
-            color: #4caf50;
-        }
-        
-        .status-stopped {
-            background: rgba(244, 67, 54, 0.2);
-            color: #f44336;
-        }
-        
-        .training-type {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 12px;
-            background: rgba(156, 39, 176, 0.2);
-            border-radius: 12px;
-            border: 1px solid rgba(156, 39, 176, 0.3);
-        }
-        
-        .training-type-label {
-            font-size: 14px;
-            color: #ce93d8;
-        }
-        
-        .training-type-value {
-            font-size: 20px;
-            font-weight: bold;
-            color: #e1bee7;
-            margin-top: 4px;
-        }
-        
-        .refresh-info {
-            text-align: center;
-            color: #607d8b;
+            padding: 4px 12px;
+            border-radius: 16px;
             font-size: 12px;
-            margin-top: 20px;
+            margin-bottom: 10px;
         }
-        
-        .error-msg {
-            background: rgba(244, 67, 54, 0.1);
-            border: 1px solid rgba(244, 67, 54, 0.3);
-            color: #f44336;
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
-        }
+        .status-running { background: rgba(76,175,80,0.2); color: #4caf50; }
+        .status-stopped { background: rgba(244,67,54,0.2); color: #f44336; }
+        .refresh-info { text-align: center; color: #607d8b; font-size: 11px; margin-top: 16px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 AI 训练监控</h1>
-        
-        <div class="training-type">
-            <div class="training-type-label">训练模式</div>
-            <div class="training-type-value" id="trainingType">加载中...</div>
-        </div>
+        <h1>🎮 AI训练监控</h1>
         
         <div class="card">
-            <span class="status-badge status-running" id="statusBadge">运行中</span>
-            <h2>训练进度</h2>
+            <span class="status-badge status-running" id="status">加载中...</span>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:18px;font-weight:bold">自我博弈训练</span>
+                <span id="trainingType" style="color:#ce93d8">自我博弈</span>
+            </div>
             <div class="progress-bar">
-                <div class="progress-fill" id="progressBar" style="width: 0%">0%</div>
+                <div class="progress-fill" id="progressBar" style="width:0%">0%</div>
             </div>
             <div class="stats-grid">
                 <div class="stat-item">
                     <div class="stat-value" id="episode">-</div>
-                    <div class="stat-label">已完成局数</div>
+                    <div class="stat-label">已完成</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-value" id="target">500,000</div>
-                    <div class="stat-label">目标局数</div>
+                    <div class="stat-value" id="target">500K</div>
+                    <div class="stat-label">目标</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-value" id="speed">-</div>
-                    <div class="stat-label">速度 (局/秒)</div>
+                    <div class="stat-label">速度/秒</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-value" id="elapsed">-</div>
-                    <div class="stat-label">已用时间</div>
+                    <div class="stat-label">用时</div>
                 </div>
             </div>
         </div>
         
         <div class="card">
-            <h2>队伍胜率对比</h2>
+            <div style="font-size:16px;font-weight:bold;margin-bottom:12px">队伍胜率</div>
             <div class="team-stats">
                 <div class="team-card team-red">
                     <div class="team-name">🔴 红队</div>
-                    <div class="team-win-rate" id="redWinRate">-</div>
-                    <div class="stat-label">胜率</div>
+                    <div class="team-win-rate" id="redRate">-</div>
                 </div>
                 <div class="team-card team-blue">
                     <div class="team-name">🔵 蓝队</div>
-                    <div class="team-win-rate" id="blueWinRate">-</div>
-                    <div class="stat-label">胜率</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <h2>训练参数</h2>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-value" id="avgLoss">-</div>
-                    <div class="stat-label">平均损失</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="timestamp">-</div>
-                    <div class="stat-label">最后更新</div>
+                    <div class="team-win-rate" id="blueRate">-</div>
                 </div>
             </div>
         </div>
         
         <div class="refresh-info">
-            页面每 5 秒自动刷新
+            页面每3秒自动刷新 | 最后更新: <span id="updateTime">-</span>
         </div>
     </div>
     
     <script>
-        let lastEpisode = 0;
+        function fmt(n) { return n ? n.toLocaleString() : '0'; }
         
-        function formatNumber(num) {
-            if (typeof num !== 'number') return '-';
-            return num.toLocaleString();
-        }
-        
-        function formatTime(hours) {
-            if (typeof hours !== 'number') return '-';
-            const h = Math.floor(hours);
-            const m = Math.floor((hours - h) * 60);
-            return `${h}h ${m}m`;
-        }
-        
-        function extractTime(isoString) {
-            if (!isoString) return '-';
+        async function update() {
             try {
-                const date = new Date(isoString);
-                return date.toLocaleTimeString('zh-CN');
-            } catch {
-                return '-';
-            }
-        }
-        
-        async function fetchStatus() {
-            try {
-                const response = await fetch('/api/training-status');
-                const data = await response.json();
-                
-                // 训练类型
-                const trainingType = data.training_type || 'imitation';
-                document.getElementById('trainingType').textContent = 
-                    trainingType === 'self_play' ? '🤖 自我博弈训练' : '📚 模仿学习训练';
-                
-                // 状态
-                const badge = document.getElementById('statusBadge');
-                const speed = data.speed || 0;
-                const isRunning = speed > 0 || Date.now() - new Date(data.timestamp).getTime() < 60000;
-                
-                badge.textContent = isRunning ? '运行中' : '已停止';
-                badge.className = 'status-badge ' + (isRunning ? 'status-running' : 'status-stopped');
+                const res = await fetch('/api/training-status?t=' + Date.now());
+                const d = await res.json();
                 
                 // 进度
-                const episode = data.episode || 0;
-                const target = data.target || 500000;
-                const progress = (episode / target * 100).toFixed(1);
+                const ep = d.episode || 0;
+                const target = d.target || 500000;
+                const pct = (ep / target * 100).toFixed(1);
                 
-                document.getElementById('progressBar').style.width = progress + '%';
-                document.getElementById('progressBar').textContent = progress + '%';
-                document.getElementById('episode').textContent = formatNumber(episode);
-                document.getElementById('target').textContent = formatNumber(target);
+                document.getElementById('progressBar').style.width = pct + '%';
+                document.getElementById('progressBar').textContent = pct + '%';
+                document.getElementById('episode').textContent = fmt(ep);
+                document.getElementById('target').textContent = '500K';
+                document.getElementById('speed').textContent = Math.round(d.speed || 0);
                 
-                // 速度和时间
-                document.getElementById('speed').textContent = Math.round(speed || 0);
-                document.getElementById('elapsed').textContent = formatTime(data.elapsed_hours);
+                // 时间
+                const h = Math.floor(d.elapsed_hours || 0);
+                const m = Math.floor((d.elapsed_hours || 0) % 1 * 60);
+                document.getElementById('elapsed').textContent = h + 'h' + m + 'm';
                 
-                // 胜率（根据训练类型显示）
-                if (trainingType === 'self_play') {
-                    document.getElementById('redWinRate').textContent = 
-                        (data.red_win_rate || 0).toFixed(1) + '%';
-                    document.getElementById('blueWinRate').textContent = 
-                        (data.blue_win_rate || 0).toFixed(1) + '%';
-                } else {
-                    document.getElementById('redWinRate').textContent = 
-                        (data.total_win_rate || 0).toFixed(1) + '%';
-                    document.getElementById('blueWinRate').textContent = '-';
-                }
+                // 胜率
+                document.getElementById('redRate').textContent = (d.red_win_rate || 0).toFixed(1) + '%';
+                document.getElementById('blueRate').textContent = (d.blue_win_rate || 0).toFixed(1) + '%';
                 
-                // 损失
-                document.getElementById('avgLoss').textContent = 
-                    typeof data.avg_loss === 'number' ? data.avg_loss.toFixed(4) : '-';
+                // 状态
+                const badge = document.getElementById('status');
+                const speed = d.speed || 0;
+                const ts = d.timestamp ? new Date(d.timestamp).getTime() : 0;
+                const isRunning = speed > 0 || (Date.now() - ts < 120000);
                 
-                // 时间戳
-                document.getElementById('timestamp').textContent = extractTime(data.timestamp);
+                badge.textContent = isRunning ? '✅ 运行中' : '⏸️ 已停止';
+                badge.className = 'status-badge ' + (isRunning ? 'status-running' : 'status-stopped');
                 
-                // 检查是否需要切换训练类型
-                if (lastEpisode > 0 && episode >= lastEpisode && episode >= 200000 && trainingType === 'imitation') {
-                    console.log('模仿学习训练完成，等待自我博弈启动...');
-                }
-                lastEpisode = episode;
+                document.getElementById('updateTime').textContent = new Date().toLocaleTimeString();
                 
-            } catch (error) {
-                console.error('获取状态失败:', error);
+            } catch (e) {
+                console.error('获取状态失败:', e);
+                document.getElementById('status').textContent = '❌ 连接失败';
             }
         }
         
-        // 初始加载
-        fetchStatus();
-        
-        // 每5秒刷新
-        setInterval(fetchStatus, 5000);
+        update();
+        setInterval(update, 3000);
     </script>
 </body>
 </html>
