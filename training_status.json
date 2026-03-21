@@ -1,13 +1,13 @@
 {
-  "episode": 145000,
+  "episode": 175000,
   "target": 500000,
-  "progress": 28.999999999999996,
-  "red_wins": 77248,
-  "blue_wins": 67752,
-  "red_win_rate": 53.27448275862069,
-  "blue_win_rate": 46.72551724137931,
-  "speed": 159.4441150358112,
-  "elapsed_hours": 0.043554096950425045,
+  "progress": 35.0,
+  "red_wins": 93137,
+  "blue_wins": 81863,
+  "red_win_rate": 53.22114285714286,
+  "blue_win_rate": 46.77885714285714,
+  "speed": 159.92576743318858,
+  "elapsed_hours": 0.09553043279382918,
   "training_type": "self_play",
-  "timestamp": "2026-03-21T10:14:47.227216"
+  "timestamp": "2026-03-21T10:17:54.342650"
 }

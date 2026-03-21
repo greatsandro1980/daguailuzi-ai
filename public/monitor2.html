@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AI训练监控 - 自我博弈</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 20px; color: #4fc3f7; font-size: 24px; }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card-title { font-size: 14px; color: #90a4ae; margin-bottom: 12px; }
+        .progress-bar {
+            height: 24px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7, #00bcd4);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            transition: width 0.3s;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 16px 8px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 8px;
+        }
+        .stat-value { font-size: 28px; font-weight: bold; color: #4fc3f7; }
+        .stat-label { font-size: 12px; color: #78909c; margin-top: 4px; }
+        .team-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .team-card { padding: 20px; border-radius: 8px; text-align: center; }
+        .team-red { background: rgba(244,67,54,0.15); border: 1px solid rgba(244,67,54,0.3); }
+        .team-blue { background: rgba(33,150,243,0.15); border: 1px solid rgba(33,150,243,0.3); }
+        .team-name { font-size: 14px; margin-bottom: 8px; }
+        .team-win-rate { font-size: 42px; font-weight: bold; }
+        .team-red .team-win-rate { color: #f44336; }
+        .team-blue .team-win-rate { color: #2196f3; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+        .status-running { background: rgba(76,175,80,0.2); color: #4caf50; }
+        .status-stopped { background: rgba(244,67,54,0.2); color: #f44336; }
+        .mode-badge {
+            background: rgba(156,39,176,0.2);
+            color: #ce93d8;
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .info { text-align: center; color: #607d8b; font-size: 11px; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 AI训练监控</h1>
+        
+        <div class="mode-badge">
+            <strong>自我博弈训练</strong> | 目标: 500,000 局
+        </div>
+        
+        <div class="card">
+            <span class="status-badge status-running" id="status">加载中...</span>
+            <div class="card-title">训练进度</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressBar" style="width:0%">0%</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="episode">-</div>
+                    <div class="stat-label">已完成</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="target">500K</div>
+                    <div class="stat-label">目标</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="speed">-</div>
+                    <div class="stat-label">速度/秒</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="eta">-</div>
+                    <div class="stat-label">剩余时间</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">队伍胜率</div>
+            <div class="team-stats">
+                <div class="team-card team-red">
+                    <div class="team-name">🔴 红队</div>
+                    <div class="team-win-rate" id="redRate">-</div>
+                </div>
+                <div class="team-card team-blue">
+                    <div class="team-name">🔵 蓝队</div>
+                    <div class="team-win-rate" id="blueRate">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info">
+            每3秒自动刷新 | 最后更新: <span id="updateTime">-</span>
+        </div>
+    </div>
+    
+    <script>
+        function fmt(n) { return n ? n.toLocaleString() : '0'; }
+        
+        async function update() {
+            try {
+                // 添加时间戳防止缓存
+                const res = await fetch('/api/training-status?t=' + Date.now());
+                const d = await res.json();
+                
+                const ep = d.episode || 0;
+                const target = d.target || 500000;
+                const pct = (ep / target * 100).toFixed(1);
+                const speed = d.speed || 0;
+                
+                // 进度
+                document.getElementById('progressBar').style.width = pct + '%';
+                document.getElementById('progressBar').textContent = pct + '%';
+                document.getElementById('episode').textContent = fmt(ep);
+                document.getElementById('target').textContent = '500K';
+                document.getElementById('speed').textContent = Math.round(speed);
+                
+                // 剩余时间
+                const remain = target - ep;
+                const etaMin = speed > 0 ? Math.round(remain / speed / 60) : 0;
+                document.getElementById('eta').textContent = etaMin + '分钟';
+                
+                // 胜率
+                document.getElementById('redRate').textContent = (d.red_win_rate || 0).toFixed(1) + '%';
+                document.getElementById('blueRate').textContent = (d.blue_win_rate || 0).toFixed(1) + '%';
+                
+                // 状态
+                const badge = document.getElementById('status');
+                const ts = d.timestamp ? new Date(d.timestamp).getTime() : 0;
+                const isRunning = speed > 0 || (Date.now() - ts < 120000);
+                
+                badge.textContent = isRunning ? '✅ 运行中' : '⏸️ 已停止';
+                badge.className = 'status-badge ' + (isRunning ? 'status-running' : 'status-stopped');
+                
+                document.getElementById('updateTime').textContent = new Date().toLocaleTimeString();
+                
+            } catch (e) {
+                console.error('获取状态失败:', e);
+                document.getElementById('status').textContent = '❌ 连接失败';
+            }
+        }
+        
+        update();
+        setInterval(update, 3000);
+    </script>
+</body>
+</html>
