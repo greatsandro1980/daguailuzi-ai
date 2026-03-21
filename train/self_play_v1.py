@@ -35,14 +35,20 @@ class FastGame:
         
     def reset(self):
         """重置游戏"""
-        self.cards = np.array([4,4,4,4,4,4,4,4,4,4,4,4,4,1,1], dtype=np.int32)
-        np.random.shuffle(self.cards)
+        # 创建牌堆：0-12各4张(共52张), 13大王1张, 14小王1张 = 54张
+        deck = []
+        for i in range(13):
+            deck.extend([i] * 4)  # 0-12 各4张
+        deck.extend([13, 14])  # 大王、小王各1张
+        
+        np.random.shuffle(deck)
         
         self.hands = np.zeros((6, 15), dtype=np.int32)
         idx = 0
         for p in range(6):
-            for _ in range(9 if p < 4 else 8):
-                self.hands[p, self.cards[idx]] += 1
+            count = 9 if p < 4 else 8  # 前4家各9张，后2家各8张
+            for _ in range(count):
+                self.hands[p, deck[idx]] += 1
                 idx += 1
                 
         self.current_player = 0

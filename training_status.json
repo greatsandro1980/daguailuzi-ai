@@ -1,12 +1,13 @@
 {
-  "episode": 132400,
-  "win_rate": 53.0,
-  "total_win_rate": 52.0,
-  "score_rate": 59.0,
-  "avg_reward": 0.53,
-  "speed": 169.1,
-  "elapsed_hours": 0.22,
-  "lr": 0.001,
-  "temperature": 1.0,
-  "timestamp": "2026-03-20T15:24:09.014217"
+  "episode": 20000,
+  "target": 500000,
+  "progress": 4.0,
+  "red_wins": 10745,
+  "blue_wins": 9255,
+  "red_win_rate": 53.725,
+  "blue_win_rate": 46.275,
+  "speed": 155.50925846658177,
+  "elapsed_hours": 0.017862459156248303,
+  "training_type": "self_play",
+  "timestamp": "2026-03-21T08:02:04.893435"
 }

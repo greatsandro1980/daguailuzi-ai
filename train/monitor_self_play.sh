@@ -16,8 +16,8 @@ log "检查间隔: 10分钟"
 log "========================================"
 
 while true; do
-    # 检查自我博弈进程
-    PID=$(ps aux | grep "self_play_v1.py" | grep -v grep | awk '{print $2}')
+    # 检查自我博弈进程（v3版本）
+    PID=$(ps aux | grep "self_play_v3.py" | grep -v grep | awk '{print $2}')
     
     if [ -z "$PID" ]; then
         log "⚠️ 自我博弈训练未运行，检查是否完成..."
