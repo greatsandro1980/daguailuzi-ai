@@ -1,13 +1,11 @@
 {
-  "episode": 185000,
-  "target": 500000,
-  "progress": 37.0,
-  "red_wins": 98413,
-  "blue_wins": 86587,
-  "red_win_rate": 53.19621621621622,
-  "blue_win_rate": 46.80378378378378,
-  "speed": 159.9780237896092,
-  "elapsed_hours": 0.11286272406578064,
-  "training_type": "self_play",
-  "timestamp": "2026-03-21T10:18:56.739174"
+  "episode": 1000,
+  "target": 100000,
+  "progress": 1.0,
+  "win_rate": 62.0,
+  "best_rate": 62.0,
+  "training_type": "reinforcement_learning",
+  "status": "completed",
+  "message": "🎉 目标达成！训练完成，胜率 62%",
+  "timestamp": "2026-03-22T07:55:00"
 }
