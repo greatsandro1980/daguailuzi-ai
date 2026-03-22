@@ -1,12 +1,17 @@
 {
-  "episode": 69000,
-  "vs_rule": 41.0,
-  "vs_random": 45.33333333333333,
-  "best_rule": 53.333333333333336,
-  "best_random": 64.66666666666666,
-  "self_play_winrate": 64.3,
-  "weak_opponent_winrate": 37.3,
-  "training_type": "v10_self_play",
+  "episode": 60000,
+  "vs_rule": 42.0,
+  "vs_random": 51.66666666666667,
+  "best_rule": 52.666666666666664,
+  "best_random": 73.0,
+  "phase": 3,
+  "win_rates": {
+    "self_play": 69.39999999999999,
+    "weak": 37.8,
+    "medium": 34.4,
+    "random": 41.4
+  },
+  "training_type": "v11_mixed",
   "status": "training",
-  "timestamp": "2026-03-22T21:45:32.478452"
+  "timestamp": "2026-03-22T23:02:19.317272"
 }
