@@ -391,10 +391,11 @@ def main():
         else:
             recent_wins.append(0)
         
-        # 计算得分：红队获胜且最后一名是蓝队，则红队得分
-        if finish_order and winner == 0:
-            last_player = finish_order[-1]
-            if last_player % 2 == 1:  # 最后一名是蓝队
+        # 计算得分：红队获胜且蓝队没人出完（压制对手）
+        if winner == 0:  # 红队获胜
+            # 检查蓝队是否有人出完牌
+            blue_finished = any(p % 2 == 1 for p in finish_order)
+            if not blue_finished:  # 蓝队没人出完，红队得分
                 total_scores += 1
                 recent_scores.append(1)
             else:
