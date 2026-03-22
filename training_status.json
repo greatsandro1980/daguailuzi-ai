@@ -1,11 +1,17 @@
 {
-  "episode": 1000,
+  "episode": 7500,
   "target": 100000,
-  "progress": 1.0,
-  "win_rate": 62.0,
-  "best_rate": 62.0,
+  "progress": 7.5,
+  "win_rate": 49.0,
+  "total_win_rate": 50.1,
+  "score_rate": 51.0,
+  "best_rate": 57.0,
+  "total_wins": 3760,
+  "total_games": 7500,
+  "total_scores": -20,
+  "speed": 35.0,
+  "elapsed_hours": 0.06,
   "training_type": "reinforcement_learning",
-  "status": "completed",
-  "message": "🎉 目标达成！训练完成，胜率 62%",
-  "timestamp": "2026-03-22T07:55:00"
+  "status": "training",
+  "timestamp": "2026-03-22T08:09:42.811508"
 }
