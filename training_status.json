@@ -1,9 +1,10 @@
 {
-  "vs_rule": 50.0,
-  "vs_random": 61.4,
-  "vs_smart": 53.4,
-  "best_rate": 61.4,
-  "training_type": "v7_supervised",
-  "status": "completed",
-  "timestamp": "2026-03-22T16:57:51.844707"
+  "episode": 6000,
+  "vs_rule": 53.0,
+  "vs_random": 63.0,
+  "best_rule": 58.333333333333336,
+  "best_random": 66.66666666666666,
+  "training_type": "v9",
+  "status": "training",
+  "timestamp": "2026-03-22T18:19:45.366317"
 }
