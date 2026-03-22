@@ -1,0 +1,8 @@
+{
+  "timestamp": "2026-03-22T09:18:05.462950",
+  "num_games": 1000,
+  "model_path": "/workspace/projects/rl_best.pt",
+  "model_vs_random": 43.2,
+  "model_vs_rule": 54.2,
+  "random_vs_rule": 56.2
+}

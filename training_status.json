@@ -1,17 +1,14 @@
 {
-  "episode": 7500,
+  "episode": 11000,
   "target": 100000,
-  "progress": 7.5,
-  "win_rate": 49.0,
-  "total_win_rate": 50.1,
-  "score_rate": 51.0,
-  "best_rate": 57.0,
-  "total_wins": 3760,
-  "total_games": 7500,
-  "total_scores": -20,
-  "speed": 35.0,
-  "elapsed_hours": 0.06,
-  "training_type": "reinforcement_learning",
+  "progress": 11.0,
+  "win_rate": 46.0,
+  "vs_rule": 44.0,
+  "vs_random": 46.0,
+  "best_rate": 60.0,
+  "speed": 18.7,
+  "elapsed_hours": 0.16,
+  "training_type": "reinforcement_learning_v4",
   "status": "training",
-  "timestamp": "2026-03-22T08:09:42.811508"
+  "timestamp": "2026-03-22T09:29:35.715684"
 }
