@@ -364,7 +364,10 @@ def main():
     
     # 统计
     total_wins = 0
+    total_games = 0
+    total_scores = 0  # 得分统计
     recent_wins = deque(maxlen=100)
+    recent_scores = deque(maxlen=100)  # 最近得分情况
     best_rate = 0
     start_time = time.time()
     
@@ -381,11 +384,23 @@ def main():
         
         train_step(policy_net, optimizer, states, actions, players, winner, finish_order)
         
+        total_games += 1
         if winner == 0:
             total_wins += 1
             recent_wins.append(1)
         else:
             recent_wins.append(0)
+        
+        # 计算得分：红队获胜且最后一名是蓝队，则红队得分
+        if finish_order and winner == 0:
+            last_player = finish_order[-1]
+            if last_player % 2 == 1:  # 最后一名是蓝队
+                total_scores += 1
+                recent_scores.append(1)
+            else:
+                recent_scores.append(0)
+        else:
+            recent_scores.append(0)
         
         # 测试
         if (ep + 1) % test_interval == 0:
@@ -396,6 +411,8 @@ def main():
             speed = (ep + 1) / elapsed
             
             train_rate = sum(recent_wins) / len(recent_wins) * 100 if recent_wins else 0
+            total_win_rate = total_wins / total_games * 100 if total_games > 0 else 0
+            score_rate = sum(recent_scores) / len(recent_scores) * 100 if recent_scores else 0
             
             best = max(rate_rule, best_rate)
             if rate_rule > best_rate:
@@ -410,9 +427,13 @@ def main():
                 'target': target,
                 'progress': (ep + 1) / target * 100,
                 'win_rate': round(train_rate, 1),
+                'total_win_rate': round(total_win_rate, 1),
+                'score_rate': round(score_rate, 1),
                 'vs_rule': round(rate_rule, 1),
                 'vs_random': round(rate_random, 1),
                 'best_rate': round(best_rate, 1),
+                'total_wins': total_wins,
+                'total_games': total_games,
                 'speed': round(speed, 1),
                 'elapsed_hours': round(elapsed / 3600, 2),
                 'training_type': 'reinforcement_learning_v4',
