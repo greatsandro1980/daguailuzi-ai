@@ -1,12 +1,12 @@
 {
-  "episode": 36000,
-  "vs_rule": 45.33333333333333,
-  "vs_random": 51.0,
+  "episode": 69000,
+  "vs_rule": 41.0,
+  "vs_random": 45.33333333333333,
   "best_rule": 53.333333333333336,
   "best_random": 64.66666666666666,
-  "self_play_winrate": 60.4,
-  "weak_opponent_winrate": 39.7,
+  "self_play_winrate": 64.3,
+  "weak_opponent_winrate": 37.3,
   "training_type": "v10_self_play",
   "status": "training",
-  "timestamp": "2026-03-22T21:04:03.695021"
+  "timestamp": "2026-03-22T21:45:32.478452"
 }
