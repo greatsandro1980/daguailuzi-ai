@@ -1,14 +1,14 @@
 {
-  "episode": 3000,
+  "episode": 12000,
   "target": 100000,
-  "progress": 3.0,
-  "win_rate": 48.0,
-  "vs_rule": 60.0,
-  "vs_random": 28.0,
-  "best_rate": 60.0,
-  "speed": 17.1,
-  "elapsed_hours": 0.05,
+  "progress": 12.0,
+  "win_rate": 45.0,
+  "vs_rule": 52.0,
+  "vs_random": 52.0,
+  "best_rate": 64.0,
+  "speed": 19.0,
+  "elapsed_hours": 0.18,
   "training_type": "reinforcement_learning_v4",
   "status": "training",
-  "timestamp": "2026-03-22T12:37:15.685157"
+  "timestamp": "2026-03-22T12:44:53.295985"
 }
