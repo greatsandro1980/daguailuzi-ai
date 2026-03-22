@@ -152,11 +152,12 @@ function tryFiveOfKind(nonJokers, jokerCount, trumpRank) {
 
 // 辅助函数：尝试用王牌组成四带一
 // 规则：同一牌型中点数从小，四带一作为四张的点数要尽量小
+// 注意：将牌是最大的，所以"从小"意味着尽量不选将牌
 function tryFourWithOne(nonJokers, jokerCount, trumpRank) {
   const counts = getRankCounts(nonJokers);
   
-  // 找到所有可以组成四带一的点数，选择最小的
   let bestRank = null;
+  let bestRankOrder = null;
   
   // 尝试找四张相同的点数（用王牌补充）
   for (const [rank, count] of Object.entries(counts)) {
@@ -169,9 +170,10 @@ function tryFourWithOne(nonJokers, jokerCount, trumpRank) {
       // 其他牌或剩余王牌可以作为"一"
       if (otherCards.length + remainingJokers >= 1) {
         const r = parseInt(rank);
-        // 选择最小的点数
-        if (bestRank === null || r < bestRank) {
+        const order = getRankOrderForMinRule(r, trumpRank);
+        if (bestRankOrder === null || order < bestRankOrder) {
           bestRank = r;
+          bestRankOrder = order;
         }
       }
     }
@@ -183,15 +185,27 @@ function tryFourWithOne(nonJokers, jokerCount, trumpRank) {
   return null;
 }
 
+// 辅助函数：获取牌的实际大小值（用于"点数从小"规则）
+// 注意：将牌是最大的，所以在比较"谁更小"时，将牌应该被视为最大
+function getRankOrderForMinRule(rank, trumpRank) {
+  if (rank === RANK_JOKER_BIG) return 100;  // 大王最大
+  if (rank === 16) return 99;  // 小王第二大
+  if (trumpRank != null && rank === trumpRank) return 98;  // 将牌第三大
+  return rank;  // 普通牌按点数
+}
+
 // 辅助函数：尝试用王牌组成三带两
 // 规则：同一牌型中点数从小，三张的点数要尽量小
-// 例如：6633+王 → 33366（王充当3），而不是 66633
+// 注意：将牌是最大的，所以"从小"意味着尽量不选将牌
+// 例如：王+22+33（将牌是2）→ 王+22变333+22（三张3），而不是222+33（三张是将牌2）
+// 例如：6633+王（将牌不是6也不是3）→ 33366（王充当3），而不是 66633
 function tryThreeWithTwo(nonJokers, jokerCount, trumpRank) {
   const counts = getRankCounts(nonJokers);
   
   // 找到所有可以组成三带两的点数，选择最小的
+  // 注意：将牌是最大的，所以在"从小"规则中，将牌应该被视为最大的
   let bestRank = null;
-  let bestPairRank = null;
+  let bestRankOrder = null;  // 用于比较的实际顺序值
   
   // 尝试找三张相同的点数（用王牌补充）
   for (const [rank, count] of Object.entries(counts)) {
@@ -203,15 +217,23 @@ function tryThreeWithTwo(nonJokers, jokerCount, trumpRank) {
       
       // 检查剩余牌能否组成对子
       const otherCounts = getRankCounts(otherCards);
+      let canFormPair = false;
       for (const [otherRank, otherCount] of Object.entries(otherCounts)) {
         const neededForPair = 2 - otherCount;
         if (remainingJokers >= neededForPair) {
-          const r = parseInt(rank);
-          // 规则：同一牌型中点数从小，选择最小的点数作为三张
-          if (bestRank === null || r < bestRank) {
-            bestRank = r;
-          }
-          break; // 只要能组成对子就行
+          canFormPair = true;
+          break;
+        }
+      }
+      
+      if (canFormPair) {
+        const r = parseInt(rank);
+        const order = getRankOrderForMinRule(r, trumpRank);
+        // 规则：同一牌型中点数从小，选择"最小"的点数
+        // 注意：将牌order值最大（98），所以不会被优先选择
+        if (bestRankOrder === null || order < bestRankOrder) {
+          bestRank = r;
+          bestRankOrder = order;
         }
       }
     }
@@ -294,18 +316,21 @@ function tryStraight(nonJokers, jokerCount, trumpRank) {
 
 // 辅助函数：尝试用王牌组成三张
 // 规则：同一牌型中点数从小，选择最小的点数
+// 注意：将牌是最大的，所以"从小"意味着尽量不选将牌
 function tryTriple(nonJokers, jokerCount, trumpRank) {
   const counts = getRankCounts(nonJokers);
   
   let bestRank = null;
+  let bestRankOrder = null;
   
   for (const [rank, count] of Object.entries(counts)) {
     const needed = 3 - count;
     if (jokerCount >= needed) {
       const r = parseInt(rank);
-      // 选择最小的点数
-      if (bestRank === null || r < bestRank) {
+      const order = getRankOrderForMinRule(r, trumpRank);
+      if (bestRankOrder === null || order < bestRankOrder) {
         bestRank = r;
+        bestRankOrder = order;
       }
     }
   }
@@ -323,18 +348,21 @@ function tryTriple(nonJokers, jokerCount, trumpRank) {
 
 // 辅助函数：尝试用王牌组成对子
 // 规则：同一牌型中点数从小，选择最小的点数
+// 注意：将牌是最大的，所以"从小"意味着尽量不选将牌
 function tryPair(nonJokers, jokerCount, trumpRank) {
   const counts = getRankCounts(nonJokers);
   
   let bestRank = null;
+  let bestRankOrder = null;
   
   for (const [rank, count] of Object.entries(counts)) {
     const needed = 2 - count;
     if (jokerCount >= needed) {
       const r = parseInt(rank);
-      // 选择最小的点数
-      if (bestRank === null || r < bestRank) {
+      const order = getRankOrderForMinRule(r, trumpRank);
+      if (bestRankOrder === null || order < bestRankOrder) {
         bestRank = r;
+        bestRankOrder = order;
       }
     }
   }
