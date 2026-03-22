@@ -124,14 +124,14 @@ class FastGame:
         self.hands[self.current] -= action
         self.hands = np.maximum(self.hands, 0)
         
-        # 检查出完
+        # 检查出完 - 游戏继续直到所有6人都出完
         if self.hands[self.current].sum() == 0:
             self.finished[self.current] = True
             self.finish_order.append(self.current)
             
-            team = self.current % 2
-            if all(self.finished[i] for i in range(6) if i % 2 == team):
-                return True, team
+            # 只有全部6人都出完才结束
+            if all(self.finished):
+                return True, self.finish_order[0] % 2  # 返回头游所在队伍
         
         if action.sum() > 0:
             self.last_play = action.copy()
@@ -391,11 +391,10 @@ def main():
         else:
             recent_wins.append(0)
         
-        # 计算得分：红队获胜且蓝队没人出完（压制对手）
-        if winner == 0:  # 红队获胜
-            # 检查蓝队是否有人出完牌
-            blue_finished = any(p % 2 == 1 for p in finish_order)
-            if not blue_finished:  # 蓝队没人出完，红队得分
+        # 计算得分：红队获胜（头游）且最后一名是蓝队
+        if winner == 0:  # 红队获胜（头游是红队）
+            # 检查最后一名是否是蓝队
+            if finish_order and finish_order[-1] % 2 == 1:  # 最后一名是蓝队
                 total_scores += 1
                 recent_scores.append(1)
             else:
