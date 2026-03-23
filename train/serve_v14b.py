@@ -1,6 +1,6 @@
 """
-V14b 策略优化版推理服务
-基于V13架构，优化三带二、配合度、大小王策略
+V18 进化策略优化版推理服务
+基于V14b架构，通过进化策略优化vs随机Bot胜率
 """
 import os
 import json
@@ -193,7 +193,7 @@ def load_model(ckpt_path):
         state_dict = torch.load(ckpt_path, map_location=device, weights_only=True)
         net.load_state_dict(state_dict)
         net.eval()
-        print(f"✅ V14b模型已加载: {ckpt_path}")
+        print(f"✅ V18模型已加载: {ckpt_path}")
     else:
         print(f"⚠️ 模型文件不存在: {ckpt_path}")
         net = ActorCritic(hidden_dim=512).to(device)
@@ -278,16 +278,16 @@ def ai_action():
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'device': str(device), 'model': 'V14b_Strategy_Optimized'})
+    return jsonify({'status': 'ok', 'device': str(device), 'model': 'V18_Evolution_Strategy_Optimized'})
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str,
-                        default='/workspace/projects/rl_v14b_best.pt')
+                        default='/workspace/projects/rl_v18_best.pt')
     parser.add_argument('--port', type=int, default=5001)
     args = parser.parse_args()
     
     load_model(args.model)
-    print(f"V14b 策略优化版推理服务启动在 http://localhost:{args.port}")
+    print(f"V18 进化策略优化版推理服务启动在 http://localhost:{args.port}")
     app.run(host='0.0.0.0', port=args.port, debug=False)

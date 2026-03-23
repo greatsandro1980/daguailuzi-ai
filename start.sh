@@ -17,14 +17,18 @@ echo -e "${GREEN}=== 大怪路子AI版 启动 ===${NC}"
 
 # 启动推理服务（可选）
 if [[ "$1" == "--ai" ]]; then
-    # 优先使用V13 PPO模型
-    MODEL_V13="$ROOT/rl_v13_ppo_best.pt"
+    # 优先使用V18进化策略优化模型
+    MODEL_V18="$ROOT/rl_v18_best.pt"
+    MODEL_V14b="$ROOT/rl_v14b_best.pt"
     MODEL_PUBLIC="$ROOT/public/self_play_model.pt"
     MODEL_OLD="$TRAIN_DIR/checkpoints/model_latest.pt"
     
-    if [ -f "$MODEL_V13" ]; then
-        MODEL="$MODEL_V13"
-        echo -e "${GREEN}[1/3] 启动V13 PPO神经网络推理服务...${NC}"
+    if [ -f "$MODEL_V18" ]; then
+        MODEL="$MODEL_V18"
+        echo -e "${GREEN}[1/3] 启动V18进化策略优化神经网络推理服务...${NC}"
+    elif [ -f "$MODEL_V14b" ]; then
+        MODEL="$MODEL_V14b"
+        echo -e "${GREEN}[1/3] 启动V14b策略优化神经网络推理服务...${NC}"
     elif [ -f "$MODEL_PUBLIC" ]; then
         MODEL="$MODEL_PUBLIC"
         echo -e "${GREEN}[1/3] 启动神经网络推理服务 (public模型)...${NC}"
@@ -37,7 +41,7 @@ if [[ "$1" == "--ai" ]]; then
     
     if [ -n "$MODEL" ]; then
         cd "$TRAIN_DIR"
-        python3 serve_v13.py --model "$MODEL" --port 5001 &
+        python3 serve_v14b.py --model "$MODEL" --port 5001 &
         AI_PID=$!
         sleep 2
         echo "      推理服务 PID: $AI_PID"
@@ -45,7 +49,8 @@ if [[ "$1" == "--ai" ]]; then
         export AI_INFERENCE_URL="http://localhost:5001/ai_action"
     else
         echo -e "${YELLOW}[警告] 未找到训练模型，AI将使用规则引擎${NC}"
-        echo -e "${YELLOW}       V13模型: $MODEL_V13${NC}"
+        echo -e "${YELLOW}       V18模型: $MODEL_V18${NC}"
+        echo -e "${YELLOW}       V14b模型: $MODEL_V14b${NC}"
         echo -e "${YELLOW}       公共模型: $MODEL_PUBLIC${NC}"
     fi
 else
