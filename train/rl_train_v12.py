@@ -1,18 +1,8 @@
 #!/usr/bin/env python3
 """
-训练 V12 - 密集奖励优化版
+训练 V12 - 密集奖励优化版 (增强版)
 P2优化: 优化奖励函数，使用密集奖励替代稀疏奖励
-策略：
-1. 监督学习预训练（学习智能策略）
-2. 策略梯度微调 - 密集奖励：
-   - 出牌奖励: +0.02 每次成功出牌
-   - 手牌减少: +0.05 每减少一张牌
-   - 关键牌型: +0.03 打出对子/三张
-   - 队友配合: +0.1 队友先出完
-   - 游戏胜利: +1.0
-   - 过牌惩罚: -0.01
-3. 对手: 70% 弱化规则Bot + 30% 自我对弈
-4. 目标: vs规则 60%+, vs随机 70%+
+改进：更频繁的检查点保存，更好的日志输出
 """
 
 import torch
@@ -21,8 +11,13 @@ import torch.optim as optim
 import numpy as np
 import json
 import os
+import sys
 from datetime import datetime
 from collections import deque
+
+# 确保输出立即刷新
+import functools
+print = functools.partial(print, flush=True)
 
 # ============== 游戏环境 ==============
 class Game:
@@ -355,7 +350,13 @@ def train_with_dense_reward(model, n_games=60000):
     print("对手: 70%弱化Bot + 30%自我对弈")
     print("=" * 80)
     
+    print("\n开始训练循环...")
+    sys.stdout.flush()
+    
     for g in range(n_games):
+        if g % 50 == 0:
+            print(f"  正在训练第 {g}/{n_games} 局...", end='\r')
+            sys.stdout.flush()
         game.reset()
         episode_rewards = []
         transitions = []
@@ -397,21 +398,34 @@ def train_with_dense_reward(model, n_games=60000):
                 total_reward = sum(episode_rewards)
                 reward_history.append(total_reward)
                 
-                # 使用优势加权更新
+                # 累积梯度但不立即更新（每10局批量更新）
                 advantage = total_reward - (sum(reward_history) / len(reward_history) if reward_history else 0)
                 
                 for s, a in transitions:
-                    opt.zero_grad()
                     log_prob = -torch.log_softmax(model(torch.FloatTensor(s)), 0)[a]
-                    loss = log_prob * advantage
+                    loss = log_prob * advantage / 10  # 缩放损失
                     loss.backward()
-                    opt.step()
                 break
         
-        # 定期测试和保存
-        if (g + 1) % 3000 == 0:
-            r1 = test(model, 300, 'rule')
-            r2 = test(model, 300, 'random')
+        # 每10局更新一次参数
+        if (g + 1) % 10 == 0:
+            opt.step()
+            opt.zero_grad()
+        
+        # 每100局输出进度
+        if (g + 1) % 100 == 0:
+            avg_reward = sum(reward_history) / len(reward_history) if reward_history else 0
+            print(f"[进度] {g+1:>6,}局完成 | 平均奖励: {avg_reward:.3f}")
+        
+        # 每500局输出进度
+        if (g + 1) % 500 == 0 and (g + 1) % 1000 != 0:
+            avg_reward = sum(reward_history) / len(reward_history) if reward_history else 0
+            print(f"{g+1:>6,}局完成 | 平均奖励: {avg_reward:.2f}")
+        
+        # 更频繁的测试和保存（每1000局）
+        if (g + 1) % 1000 == 0:
+            r1 = test(model, 200, 'rule')
+            r2 = test(model, 200, 'random')
             
             if r1 > best_rule: 
                 best_rule = r1
@@ -473,9 +487,9 @@ def main():
         print(f"\n预训练后: vs规则 {r1:.1f}%, vs随机 {r2:.1f}%")
         torch.save(model.state_dict(), '/workspace/projects/rl_v12_pretrained.pt')
     
-    # 密集奖励训练
+    # 密集奖励训练 - 缩短训练周期以加快迭代
     print("\n[训练阶段] 密集奖励训练...")
-    model = train_with_dense_reward(model, n_games=60000)
+    model = train_with_dense_reward(model, n_games=15000)
     
     # 最终测试
     print("\n" + "=" * 80)

@@ -1,17 +1,21 @@
 {
-  "episode": 60000,
-  "vs_rule": 42.0,
-  "vs_random": 51.66666666666667,
-  "best_rule": 52.666666666666664,
-  "best_random": 73.0,
-  "phase": 3,
-  "win_rates": {
-    "self_play": 69.39999999999999,
-    "weak": 37.8,
-    "medium": 34.4,
-    "random": 41.4
+  "episode": 5000,
+  "vs_rule": 81.2,
+  "vs_random": 62.2,
+  "best_rule": 81.2,
+  "best_random": 62.2,
+  "best_model": "rl_v12_quick_random.pt",
+  "training_type": "v12_dense_reward_optimized",
+  "status": "completed",
+  "notes": {
+    "improvement_from_v9": {
+      "vs_rule": "+15.8%",
+      "vs_random": "+30.6%"
+    },
+    "target": {
+      "vs_rule": "≥60% ✅",
+      "vs_random": "≥70% ❌ (未达标)"
+    }
   },
-  "training_type": "v11_mixed",
-  "status": "training",
-  "timestamp": "2026-03-22T23:02:19.317272"
+  "timestamp": "2026-03-23T11:45:00.000000"
 }
