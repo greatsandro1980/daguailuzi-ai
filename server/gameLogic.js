@@ -640,7 +640,7 @@ function findAllFirstPlayOptions(hand, jokers, trumpRank) {
       if (remJ.length >= 2) add([...three, ...remJ.slice(0, 2)]);
     }
 
-    // 四带一
+    // 四带一（优先带小单张）
     for (const [rank, cnt] of Object.entries(counts)) {
       const r = parseInt(rank);
       const fourCards = nonJokers.filter(c => c.rank === r);
@@ -648,12 +648,33 @@ function findAllFirstPlayOptions(hand, jokers, trumpRank) {
       if (jc < need4) continue;
       const four = [...fourCards.slice(0, 4 - need4), ...jokerCards.slice(0, need4)];
       const remJ = jokerCards.slice(need4);
-      for (const [rank2, ] of Object.entries(counts)) {
+      
+      // 收集所有可以带的单牌，按点数从小到大排序
+      const singleCards = [];
+      for (const [rank2, cnt2] of Object.entries(counts)) {
         if (rank2 === rank) continue;
-        const card1 = nonJokers.find(c => c.rank === parseInt(rank2));
-        if (card1) { add([...four, card1]); break; }
+        const r2 = parseInt(rank2);
+        // 优先带单张（cnt2=1），其次带对子拆牌
+        const card1 = nonJokers.find(c => c.rank === r2);
+        if (card1) {
+          singleCards.push({ card: card1, rank: r2, isSingle: cnt2 === 1 });
+        }
       }
-      if (remJ.length >= 1) add([...four, remJ[0]]);
+      // 排序：单张优先，然后按点数从小到大
+      singleCards.sort((a, b) => {
+        // 单张优先
+        if (a.isSingle !== b.isSingle) return a.isSingle ? -1 : 1;
+        // 点数从小到大（王牌视为最大）
+        const aVal = a.card.isJoker ? 100 : a.rank;
+        const bVal = b.card.isJoker ? 100 : b.rank;
+        return aVal - bVal;
+      });
+      
+      if (singleCards.length > 0) {
+        add([...four, singleCards[0].card]);
+      } else if (remJ.length >= 1) {
+        add([...four, remJ[0]]);
+      }
     }
 
     // 五同
@@ -882,7 +903,7 @@ function buildStraightFlush(nonJokers, jokers, mainRank) {
   return cards;
 }
 
-// 构建四带一
+// 构建四带一（优先带小单张）
 function buildFourWithOne(nonJokers, jokers, mainRank) {
   const fourCards = nonJokers.filter(c => c.rank === mainRank);
   const neededForFour = 4 - fourCards.length;
@@ -890,14 +911,25 @@ function buildFourWithOne(nonJokers, jokers, mainRank) {
   
   const fourWithJokers = [...fourCards, ...jokers.slice(0, neededForFour)];
   
-  // 找一张最小的牌作为"一"
+  // 找一张最小的牌作为"一"，优先选单张
   const remainingNonJokers = nonJokers.filter(c => c.rank !== mainRank);
   const remainingJokers = jokers.slice(neededForFour);
   
   if (remainingNonJokers.length > 0) {
-    // 选点数最小的
-    const sorted = remainingNonJokers.sort((a, b) => a.rank - b.rank);
-    return [...fourWithJokers, sorted[sorted.length - 1]];
+    // 统计剩余牌的数量，优先选单张
+    const counts = getRankCounts(remainingNonJokers);
+    const candidates = remainingNonJokers.map(c => ({
+      card: c,
+      isSingle: counts[c.rank] === 1
+    }));
+    
+    // 排序：单张优先，然后按点数从小到大
+    candidates.sort((a, b) => {
+      if (a.isSingle !== b.isSingle) return a.isSingle ? -1 : 1;
+      return a.card.rank - b.card.rank;
+    });
+    
+    return [...fourWithJokers, candidates[0].card];
   } else if (remainingJokers.length > 0) {
     return [...fourWithJokers, remainingJokers[0]];
   }
