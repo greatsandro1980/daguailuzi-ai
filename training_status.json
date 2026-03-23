@@ -1,21 +1,33 @@
 {
-  "episode": 5000,
-  "vs_rule": 81.2,
-  "vs_random": 62.2,
-  "best_rule": 81.2,
-  "best_random": 62.2,
-  "best_model": "rl_v12_quick_random.pt",
-  "training_type": "v12_dense_reward_optimized",
-  "status": "completed",
-  "notes": {
-    "improvement_from_v9": {
-      "vs_rule": "+15.8%",
-      "vs_random": "+30.6%"
-    },
-    "target": {
-      "vs_rule": "≥60% ✅",
-      "vs_random": "≥70% ❌ (未达标)"
-    }
+  "episode": 3000,
+  "vs_rule": 90.3,
+  "vs_random": 79.6,
+  "best_rule": 90.3,
+  "best_random": 79.6,
+  "best_model": "rl_v13_ppo_best.pt",
+  "training_type": "v13_ppo_actor_critic",
+  "model_architecture": {
+    "type": "ActorCritic",
+    "hidden_dim": 512,
+    "layers": 3,
+    "actor_head": "256 -> 16",
+    "critic_head": "256 -> 1"
   },
-  "timestamp": "2026-03-23T11:45:00.000000"
+  "ppo_params": {
+    "learning_rate": 0.0003,
+    "gamma": 0.99,
+    "clip_ratio": 0.2,
+    "value_coef": 0.5,
+    "entropy_coef": 0.01
+  },
+  "status": "completed",
+  "target": {
+    "vs_rule": "≥60% ✅ 达标",
+    "vs_random": "≥70% ✅ 达标"
+  },
+  "improvement_from_v12": {
+    "vs_rule": "+10.0%",
+    "vs_random": "+18.7%"
+  },
+  "timestamp": "2026-03-23T14:10:00.000000"
 }
