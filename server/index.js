@@ -1507,6 +1507,7 @@ function startNextRound(g) {
     broadcastRoomState();
     broadcastAllHands();
     scheduleTributeCountdown(g);
+    scheduleAITributeIfNeeded(g);  // 立即处理AI进贡
   } else {
     // 直接开始游戏
     g.phase = GamePhase.PLAYING;
@@ -1523,6 +1524,20 @@ function startNextRound(g) {
 }
 
 // ─── 进贡逻辑 ─────────────────────────────────────────
+function scheduleAITributeIfNeeded(g) {
+  if (g.phase !== GamePhase.TRIBUTE || !g.tributeInfo) return;
+  const ti = g.tributeInfo;
+  const currentTributorSeat = ti.tributors[ti.currentTributorIndex];
+  if (!isAISeat(g, currentTributorSeat)) return;
+
+  // AI 延迟 0.5~1.5 秒进贡
+  const delay = 500 + Math.random() * 1000;
+  setTimeout(() => {
+    if (g.phase !== GamePhase.TRIBUTE || !g.tributeInfo) return;
+    autoTribute(g);
+  }, delay);
+}
+
 function scheduleTributeCountdown(g) {
   stopCountdown(g);
   if (!g.tributeInfo) return;
@@ -1603,6 +1618,7 @@ function doResist(g, seatIndex, jokerCards) {
   } else {
     broadcastRoomState();
     scheduleTributeCountdown(g);
+    scheduleAITributeIfNeeded(g);  // 处理下一个AI进贡者
   }
 }
 
@@ -1650,6 +1666,7 @@ function doTribute(g, seatIndex, card) {
     broadcastRoomState();
     broadcastAllHands();
     scheduleTributeCountdown(g);
+    scheduleAITributeIfNeeded(g);  // 处理下一个AI进贡者
   }
 }
 
@@ -1669,9 +1686,39 @@ function proceedToReturnOrEnd(g) {
     broadcastRoomState();
     broadcastAllHands();
     scheduleReturnCountdown(g);
+    scheduleAIReturnIfNeeded(g);  // 立即处理AI还贡
   } else {
     finishTributePhase(g);
   }
+}
+
+function scheduleAIReturnIfNeeded(g) {
+  if (g.phase !== GamePhase.TRIBUTE_RETURN || !g.tributeInfo) return;
+  const ti = g.tributeInfo;
+  const validTributes = ti.tributes.filter(t => !ti.resistedPlayers.includes(t.tributorId));
+  const currentTribute = validTributes[ti.currentTributorIndex];
+  if (!currentTribute) return;
+
+  // 根据子阶段确定当前操作的玩家
+  let currentSeat;
+  if (ti.returnSubPhase === 'selecting_candidates') {
+    // 受贡方选候选牌
+    currentSeat = currentTribute.receiverId;
+  } else if (ti.returnSubPhase === 'tributor_picking') {
+    // 进贡方挑选
+    currentSeat = currentTribute.tributorId;
+  } else {
+    return;
+  }
+
+  if (!isAISeat(g, currentSeat)) return;
+
+  // AI 延迟 0.5~1.5 秒还贡
+  const delay = 500 + Math.random() * 1000;
+  setTimeout(() => {
+    if (g.phase !== GamePhase.TRIBUTE_RETURN || !g.tributeInfo) return;
+    autoReturn(g);
+  }, delay);
 }
 
 function scheduleReturnCountdown(g) {
@@ -1766,6 +1813,7 @@ function doReturnCandidatesConfirm(g, receiverSeat, cards) {
     g.returnCountdown = 15;
     broadcastRoomState();
     scheduleReturnCountdown(g);
+    scheduleAIReturnIfNeeded(g);  // 如果进贡方是AI，立即处理
   }
 }
 
@@ -1839,6 +1887,7 @@ function checkReturnEnd(g) {
     g.returnCountdown = 15;
     broadcastRoomState();
     scheduleReturnCountdown(g);
+    scheduleAIReturnIfNeeded(g);  // 处理下一个AI还贡者
   }
 }
 
